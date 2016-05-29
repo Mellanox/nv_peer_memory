@@ -1,0 +1,47 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+pname:=nvidia-peer-memory
+psource:=$(pname)-source
+pdkms:=$(pname)-dkms
+
+pversion := $(shell dpkg-parsechangelog | sed -n 's/^Version: *\([^-]\+\)-.\+/\1/p')
+
+DIST_NAME := $(shell lsb_release -si)
+DIST_RELEASE := $(DIST_NAME)/$(shell lsb_release -sc)
+PREFIX=/opt/ummunotify-1.0
+KVER = $(shell uname -r)
+
+%:
+	dh $@ --with dkms
+
+override_dh_auto_clean:
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	# For dkms
+	dh_installdirs -p$(pdkms)  usr/src/$(pname)-$(pversion)
+	cp -a Makefile             debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a nv-p2p.h             debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a nv_peer_mem.c        debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a nv.symvers           debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a dkms.conf            debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+
+	# utils
+	dh_installdirs -p$(pname)  /etc/infiniband/
+	install -m 0644 nv_peer_mem.conf            debian/$(pname)/etc/infiniband/nv_peer_mem.conf
+	dh_installdirs -p$(pname)  /etc/init.d/
+	install -m 0755 nv_peer_mem                 debian/$(pname)/etc/init.d/nv_peer_mem
+	# add info needed to load the module on boot
+	$(CURDIR)/debian/updateInit.sh debian/$(pname)/etc/init.d/nv_peer_mem
+	dh_installdirs -p$(pname)  /etc/init/
+	install -m 0755 nv_peer_mem.upstart         debian/$(pname)/etc/init/nv_peer_mem.conf
+
+override_dh_installinit:

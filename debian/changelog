@@ -1,0 +1,5 @@
+nvidia-peer-memory (1.0-0) unstable; urgency=low
+
+  * Initial release. Closes: #358673
+
+ -- Alaa Hleihel <alaa@mellanox.com>  Thur, 12 Dec 2013 15:00:53 +0200

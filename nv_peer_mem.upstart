@@ -1,0 +1,15 @@
+# nv_peer_mem
+#
+
+description	"load nv_peer_mem module"
+
+start on (startup
+          and started openibd)
+stop on runlevel [!2345]
+
+pre-start script
+	exec /etc/init.d/nv_peer_mem start
+end script
+
+post-stop exec /etc/init.d/nv_peer_mem stop
+

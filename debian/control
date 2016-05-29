@@ -1,0 +1,21 @@
+Source: nvidia-peer-memory
+Section: kernel
+Priority: optional
+Maintainer: Yishai Hadas <yishaih@mellanox.com>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, bzip2, dkms
+Standards-Version: 1.0
+Homepage: http://www.mellanox.com
+
+Package: nvidia-peer-memory
+Architecture: all
+Depends: ${misc:Depends}
+Description: nvidia peer memory kernel module.
+
+Package: nvidia-peer-memory-dkms
+Section: kernel
+Architecture: all
+Depends: dkms, make, linux-headers | linux-headers-generic , ${misc:Depends}
+Description: DKMS support for nvidia-peer-memory kernel modules
+ This package provides integration with the DKMS infrastructure for automatically building out of tree kernel modules.
+ .
+ This package contains the source to be built with dkms.

@@ -1,0 +1,151 @@
+#!/bin/bash
+
+#
+# Copyright (c) 2013 Mellanox Technologies. All rights reserved.
+#
+
+# config: /etc/infiniband/nv_peer_mem.conf
+CONFIG=${CONFIG:-"/etc/infiniband/nv_peer_mem.conf"}
+
+modname=nv_peer_mem
+reqmods="ib_core nvidia"
+
+if [ ! -f $CONFIG ]; then
+    echo No configuration file found for $modname
+    exit 0
+fi
+
+. $CONFIG
+
+CWD=`pwd`
+cd /etc/infiniband
+WD=`pwd`
+
+# Allow unsupported modules, if disallowed by current configuration
+modprobe=/sbin/modprobe
+if ${modprobe} -c | grep -q '^allow_unsupported_modules  *0'; then
+    modprobe="${modprobe} --allow-unsupported-modules"
+fi
+
+ACTION=$1
+shift
+
+# Check if configured to start automatically
+if [ "X${ONBOOT}" != "Xyes" ]; then
+    exit 0
+fi
+
+is_module()
+{
+    local RC
+
+    /sbin/lsmod | grep -w "$1" > /dev/null 2>&1
+    RC=$?
+
+    return $RC
+}
+
+log_msg()
+{
+    logger -i "$modname: $@"
+}
+
+load_module()
+{
+    local module=$1
+    filename=`modinfo $module | grep filename | awk '{print $NF}'`
+
+    if [ ! -n "$filename" ]; then
+        echo "Module $module does not exist"
+        log_msg "Error: Module $module does not exist"
+        return 1
+    fi
+
+    ${modprobe} $module 2>&1
+}
+
+start()
+{
+    local RC=0
+    echo -n "starting... "
+
+    # Check if required modules are loaded
+    for mod in $reqmods
+    do
+        if is_module $mod ; then
+            continue
+        else
+            echo "Error: the following required module is not loaded: $mod"
+            log_msg "Error: the following required module is not loaded: $mod"
+            exit 1
+        fi
+    done
+
+    load_module $modname
+    RC=$?
+    if [ $RC -eq 0 ];then
+        echo "OK"
+        log_msg "$modname loaded."
+    else
+        echo "Failed to load $modname"
+        log_msg "Failed to load $modname"
+    fi
+
+    return $RC
+}
+
+stop()
+{
+    local RC=0
+    echo -n "stopping... "
+    if is_module $modname ; then
+        /sbin/rmmod $modname 2>&1
+	RC=$?
+        if [ $RC -eq 0 ];then
+            echo "OK"
+            log_msg "$modname unloaded."
+        else
+            echo "Failed to unload $modname"
+            log_msg "Failed to unload $modname"
+        fi
+    else
+        echo "OK"
+    fi
+
+    return $RC
+}
+
+status()
+{
+    if is_module $modname ; then
+        echo "$modname module is loaded."
+    else
+        echo "$modname module is NOT loaded."
+    fi
+}
+
+RC=0
+case $ACTION in
+        start)
+                start
+                ;;
+        stop)
+                stop
+                ;;
+        restart)
+                stop
+                start
+                ;;
+        status)
+                status
+                ;;
+        *)
+                echo
+                echo "Usage: `basename $0` {start|stop|restart|status}"
+                echo
+                exit 1
+                ;;
+esac
+
+RC=$?
+exit $RC

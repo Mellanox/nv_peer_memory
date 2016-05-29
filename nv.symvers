@@ -1,0 +1,5 @@
+0xf487b36a	nvidia_p2p_get_pages	/cuda/285.05.33/NVIDIA-Linux-x86_64-285.05.33/kernel/nvidia	EXPORT_SYMBOL
+0xc28548aa	nvidia_p2p_init_mapping	/cuda/285.05.33/NVIDIA-Linux-x86_64-285.05.33/kernel/nvidia	EXPORT_SYMBOL
+0x4c9ba34e	nvidia_p2p_destroy_mapping	/cuda/285.05.33/NVIDIA-Linux-x86_64-285.05.33/kernel/nvidia	EXPORT_SYMBOL
+0xeacba72c	nvidia_p2p_put_pages	/cuda/285.05.33/NVIDIA-Linux-x86_64-285.05.33/kernel/nvidia	EXPORT_SYMBOL
+0x88765bb5	nvidia_p2p_free_page_table	/cuda/285.05.33/NVIDIA-Linux-x86_64-285.05.33/kernel/nvidia	EXPORT_SYMBOL

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+dist=`lsb_release -s -i | tr '[:upper:]' '[:lower:]'`
+dist_ver=`lsb_release -s -r`
+
+if [ $dist != "ubuntu" ]; then
+	/usr/sbin/update-rc.d nv_peer_mem defaults > /dev/null 2>&1
+fi
+
+exit 0
