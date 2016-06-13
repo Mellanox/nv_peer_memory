@@ -2,7 +2,7 @@ obj-m += nv_peer_mem.o
 
 OFA_KERNEL=$(shell (test -d /usr/src/ofa_kernel/default && echo /usr/src/ofa_kernel/default) || (test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build))
 
-EXTRA_CFLAGS +=-I$(OFA_KERNEL)/include/ -I$(OFA_KERNEL)/include/rdma
+ccflags-y +=-I$(OFA_KERNEL)/include/ -I$(OFA_KERNEL)/include/rdma
 PWD  := $(shell pwd)
 KVER := $(shell uname -r)
 MODULES_DIR := /lib/modules/$(KVER)
