@@ -8,7 +8,7 @@ KVER := $(shell uname -r)
 MODULES_DIR := /lib/modules/$(KVER)
 KDIR := $(MODULES_DIR)/build
 MODULE_DESTDIR := $(MODULES_DIR)/extra/
-
+DEPMOD := /sbin/depmod
 
 # GCC earlier than 4.6.0 will build modules which require 'mcount',
 # and this symbol will not be available in the kernel if the kernel was
