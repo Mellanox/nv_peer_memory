@@ -32,6 +32,7 @@ To build source packages (src.rpm for RPM based OS and tarball for DEB based OS)
 
 
 Example:
+
     $ ./build_release.sh
     Working in /tmp/nv.pg5HOW ...
     Cloning from https://github.com/Mellanox/nv_peer_memory.git ...
@@ -50,28 +51,31 @@ Example:
     Built: /tmp/nvidia_peer_memory-1.0-1.src.rpm
     Built: /tmp/nvidia-peer-memory_1.0.orig.tar.gz
 
-    To install run on RPM based OS:
-        # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.0-1.src.rpm
-        # rpm -ivh <path to generated binary rpm file>
+To install run on RPM based OS:
 
-    To install on DEB based OS:
-        # cd /tmp
-        # tar xzf /tmp/nvidia-peer-memory_1.0.orig.tar.gz
-        # cd nvidia-peer-memory-1.0
-        # dpkg-buildpackage -us -uc
-        # dpkg -i <path to generated deb files>
+    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.0-1.src.rpm
+    # rpm -ivh <path to generated binary rpm file>
 
+To install on DEB based OS:
+
+    # cd /tmp
+    # tar xzf /tmp/nvidia-peer-memory_1.0.orig.tar.gz
+    # cd nvidia-peer-memory-1.0
+    # dpkg-buildpackage -us -uc
+    # dpkg -i <path to generated deb files>
 
 To install run (excluding ubuntu):
-                rpmbuild --rebuild <path to srpm>.
-                rpm -ivh <path to generated binary rpm file.> [On SLES add --nodeps].
+
+    rpmbuild --rebuild <path to srpm>.
+    rpm -ivh <path to generated binary rpm file.> [On SLES add --nodeps].
 
 To install on Ubuntu run:
-          dpkg-buildpackage -us -uc
-          dpkg -i <path to generated deb files.>
 
-		  (e.g. dpkg -i nv-peer-memory_1.0-0_all.deb
-		       dpkg -i nv-peer-memory-dkms_1.0-0_all.deb)
+    dpkg-buildpackage -us -uc
+    dpkg -i <path to generated deb files.>
+
+    (e.g. dpkg -i nv-peer-memory_1.0-0_all.deb
+          dpkg -i nv-peer-memory-dkms_1.0-0_all.deb)
 
 After successful installation:
 1)	nv_peer_mem.ko is installed
