@@ -1,3 +1,9 @@
+nvidia-peer-memory (1.0-1) unstable; urgency=low
+
+  * Makefile: EXTRA_CFLAGS was deprecated [1] in newer kernels.
+
+ -- Yishai Hadas <yishaih@mellanox.com>  Wed, 17 Aug 2016 15:00:53 +0200
+
 nvidia-peer-memory (1.0-0) unstable; urgency=low
 
   * Initial release. Closes: #358673
