@@ -8,6 +8,7 @@ KVER := $(shell uname -r)
 MODULES_DIR := /lib/modules/$(KVER)
 KDIR := $(MODULES_DIR)/build
 MODULE_DESTDIR := $(MODULES_DIR)/extra/
+DEPMOD := /sbin/depmod
 
 
 KERNEL_VER?=$(shell uname -r)
