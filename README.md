@@ -28,6 +28,40 @@ Pre-requisites:
 For the required NVIDIA driver and other relevant details in that area
 please check with NVIDIA support.
 
+To build source packages (src.rpm for RPM based OS and tarball for DEB based OS), use the build_release.sh script.
+
+
+Example:
+    $ ./build_release.sh
+    Working in /tmp/nv.pg5HOW ...
+    Cloning from https://github.com/Mellanox/nv_peer_memory.git ...
+    Cloning into 'nv_peer_memory'...
+    remote: Counting objects: 46, done.
+    remote: Compressing objects: 100% (13/13), done.
+    remote: Total 46 (delta 2), reused 0 (delta 0), pack-reused 33
+    Unpacking objects: 100% (46/46), done.
+    Checking connectivity... done.
+    Checking out branch: master ...
+    Already on 'master'
+
+    Building source rpm for nvidia_peer_memory...
+    Building debian tarball for nvidia-peer-memory...
+
+    Built: /tmp/nvidia_peer_memory-1.0-1.src.rpm
+    Built: /tmp/nvidia-peer-memory_1.0.orig.tar.gz
+
+    To install run on RPM based OS:
+        # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.0-1.src.rpm
+        # rpm -ivh <path to generated binary rpm file>
+
+    To install on DEB based OS:
+        # cd /tmp
+        # tar xzf /tmp/nvidia-peer-memory_1.0.orig.tar.gz
+        # cd nvidia-peer-memory-1.0
+        # dpkg-buildpackage -us -uc
+        # dpkg -i <path to generated deb files>
+
+
 To install run (excluding ubuntu):
                 rpmbuild --rebuild <path to srpm>.
                 rpm -ivh <path to generated binary rpm file.> [On SLES add --nodeps].
