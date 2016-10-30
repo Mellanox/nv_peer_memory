@@ -24,7 +24,7 @@ override_dh_auto_install:
 	cp -a Makefile             debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp -a nv-p2p.h             debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp -a nv_peer_mem.c        debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp -a nv.symvers           debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a create_nv.symvers.sh           debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp -a dkms.conf            debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 
 	# utils

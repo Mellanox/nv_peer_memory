@@ -1,6 +1,6 @@
 obj-m += nv_peer_mem.o
 
-PHONY += all clean install uninstall
+PHONY += all clean install uninstall gen_nv_symvers
 .PHONY: $(PHONY)
 
 OFA_KERNEL=$(shell (test -d /usr/src/ofa_kernel/default && echo /usr/src/ofa_kernel/default) || (test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build))
@@ -39,13 +39,14 @@ override MAKE_PARAMS += CONFIG_FUNCTION_TRACER= CONFIG_HAVE_FENTRY=
 endif
 endif
 
-all:
+all: gen_nv_symvers
 	cp -rf $(OFA_KERNEL)/Module.symvers .
 	cat nv.symvers >> Module.symvers
 	make -C $(KDIR) $(MAKE_PARAMS) M=$(PWD) modules
 
 clean:
 	make -C $(KDIR)  M=$(PWD) clean
+	/bin/rm -f nv.symvers
 
 install:
 	mkdir -p $(DESTDIR)/$(MODULE_DESTDIR);
@@ -55,3 +56,6 @@ install:
 uninstall:
 	/bin/rm -f $(DESTDIR)/$(MODULE_DESTDIR)/nv_peer_mem.ko
 	if [ ! -n "$(DESTDIR)" ]; then $(DEPMOD) -r -ae $(KVER);fi;
+
+gen_nv_symvers:
+	$(PWD)/create_nv.symvers.sh $(KVER)
