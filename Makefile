@@ -39,14 +39,25 @@ override MAKE_PARAMS += CONFIG_FUNCTION_TRACER= CONFIG_HAVE_FENTRY=
 endif
 endif
 
+#
+# Get nv-p2p.h header file of the currently installed CUDA version.
+NV_P2P_H=$(shell /bin/ls -1 /usr/src/nvidia-*/nvidia/nv-p2p.h 2>/dev/null | tail -1)
+
 all: gen_nv_symvers
+ifneq ($(shell test -e "$(NV_P2P_H)" && echo "true" || echo "" ),)
+	$(info Found $(NV_P2P_H))
+	/bin/cp -f $(NV_P2P_H) $(PWD)/nv-p2p.h
+else
+	$(info Warning: nv-p2p.h was not found on the system, going to use compat_nv-p2p.h)
+	/bin/cp -f $(PWD)/compat_nv-p2p.h $(PWD)/nv-p2p.h
+endif
 	cp -rf $(OFA_KERNEL)/Module.symvers .
 	cat nv.symvers >> Module.symvers
 	make -C $(KDIR) $(MAKE_PARAMS) M=$(PWD) modules
 
 clean:
 	make -C $(KDIR)  M=$(PWD) clean
-	/bin/rm -f nv.symvers
+	/bin/rm -f nv.symvers nv-p2p.h
 
 install:
 	mkdir -p $(DESTDIR)/$(MODULE_DESTDIR);
