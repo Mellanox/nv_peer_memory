@@ -36,7 +36,6 @@ override MAKE_PARAMS += CONFIG_FUNCTION_TRACER= CONFIG_HAVE_FENTRY=
 endif
 endif
 
-KERNEL_VER?=$(shell uname -r)
 all:
 	cp -rf $(OFA_KERNEL)/Module.symvers .
 	cat nv.symvers >> Module.symvers

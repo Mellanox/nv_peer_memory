@@ -4,15 +4,8 @@
 #export DH_VERBOSE=1
 
 pname:=nvidia-peer-memory
-psource:=$(pname)-source
 pdkms:=$(pname)-dkms
-
 pversion := $(shell dpkg-parsechangelog | sed -n 's/^Version: *\([^-]\+\)-.\+/\1/p')
-
-DIST_NAME := $(shell lsb_release -si)
-DIST_RELEASE := $(DIST_NAME)/$(shell lsb_release -sc)
-PREFIX=/opt/ummunotify-1.0
-KVER = $(shell uname -r)
 
 %:
 	dh $@ --with dkms
