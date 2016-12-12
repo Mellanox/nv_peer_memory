@@ -47,17 +47,10 @@
 
 
 #define DRV_NAME	"nv_mem"
-#define DRV_VERSION	"1.1"
+#define DRV_VERSION	"1.0"
 #define DRV_RELDATE	__DATE__
 
-#define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __func__, __LINE__, ## ARGS)
-
-#define INFO_ENABLE 1
-#define peer_info(FMT, ARGS...)		\
-	do {				\
-		if (INFO_ENABLE)		\
-			printk(KERN_INFO   DRV_NAME " %s:%d " FMT, __func__, __LINE__, ## ARGS);	\
-	} while (0)
+#define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
 #ifndef NVIDIA_P2P_MAJOR_VERSION_MASK
 #define NVIDIA_P2P_MAJOR_VERSION_MASK   0xffff0000
@@ -88,17 +81,6 @@
 #define NV_DMA_MAPPING 1
 #else
 #define NV_DMA_MAPPING 0
-#endif
-
-#ifndef NVIDIA_P2P_MAJOR_VERSION_MATCHES
-#define NVIDIA_P2P_MAJOR_VERSION_MATCHES(p, v)	\
-	(NVIDIA_P2P_MAJOR_VERSION((p)->version) == NVIDIA_P2P_MAJOR_VERSION(v))
-#endif
-
-#ifndef NVIDIA_P2P_VERSION_COMPATIBLE
-#define NVIDIA_P2P_VERSION_COMPATIBLE(p, v)	\
-	(NVIDIA_P2P_MAJOR_VERSION_MATCHES(p, v) &&	\
-	(NVIDIA_P2P_MINOR_VERSION((p)->version) >= NVIDIA_P2P_MINOR_VERSION(v)))
 #endif
 
 MODULE_AUTHOR("Yishai Hadas");
