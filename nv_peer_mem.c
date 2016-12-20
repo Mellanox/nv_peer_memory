@@ -39,6 +39,7 @@
 #include <linux/export.h>
 #include <linux/hugetlb.h>
 #include <linux/atomic.h>
+#include <linux/pci.h>
 
 
 #include "nv-p2p.h"
@@ -51,6 +52,36 @@
 
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
+#ifndef NVIDIA_P2P_MAJOR_VERSION_MASK
+#define NVIDIA_P2P_MAJOR_VERSION_MASK   0xffff0000
+#endif
+
+#ifndef NVIDIA_P2P_MINOR_VERSION_MASK
+#define NVIDIA_P2P_MINOR_VERSION_MASK   0x0000ffff
+#endif
+
+#ifndef NVIDIA_P2P_MAJOR_VERSION
+#define NVIDIA_P2P_MAJOR_VERSION(v)	\
+	(((v) & NVIDIA_P2P_MAJOR_VERSION_MASK) >> 16)
+#endif
+
+#ifndef NVIDIA_P2P_MINOR_VERSION
+#define NVIDIA_P2P_MINOR_VERSION(v)	\
+	(((v) & NVIDIA_P2P_MINOR_VERSION_MASK))
+#endif
+
+/*
+ *	Note: before major version 2, struct dma_mapping had no version field,
+ *	so it is not possible to check version compatibility. In this case
+ *	let us just avoid dma mappings altogether.
+ */
+#if defined(NVIDIA_P2P_DMA_MAPPING_VERSION) &&	\
+	(NVIDIA_P2P_MAJOR_VERSION(NVIDIA_P2P_DMA_MAPPING_VERSION) >= 2)
+#pragma message("Enable nvidia_p2p_dma_map_pages support")
+#define NV_DMA_MAPPING 1
+#else
+#define NV_DMA_MAPPING 0
+#endif
 
 MODULE_AUTHOR("Yishai Hadas");
 MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
@@ -68,6 +99,9 @@ static void *reg_handle;
 
 struct nv_mem_context {
 	struct nvidia_p2p_page_table *page_table;
+#if NV_DMA_MAPPING
+	struct nvidia_p2p_dma_mapping *dma_mapping;
+#endif
 	void *core_context;
 	u64 page_virt_start;
 	u64 page_virt_end;
@@ -187,18 +221,58 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		(struct nv_mem_context *) context;
 	struct nvidia_p2p_page_table *page_table = nv_mem_context->page_table;
 
-	if (nv_mem_context->page_table->page_size != NVIDIA_P2P_PAGE_SIZE_64KB) {
+	if (page_table->page_size != NVIDIA_P2P_PAGE_SIZE_64KB) {
 		peer_err("nv_dma_map -- assumption of 64KB pages failed size_id=%u\n",
 					nv_mem_context->page_table->page_size);
 		return -EINVAL;
 	}
 
+#if NV_DMA_MAPPING
+	{
+		struct nvidia_p2p_dma_mapping *dma_mapping;
+		struct pci_dev *pdev = to_pci_dev(dma_device);
+
+		if (!pdev) {
+			peer_err("nv_dma_map -- invalid pci_dev\n");
+			return -EINVAL;
+		}
+
+		ret = nvidia_p2p_dma_map_pages(pdev, page_table, &dma_mapping);
+		if (ret) {
+			peer_err("nv_dma_map -- error %d while calling nvidia_p2p_dma_map_pages()\n", ret);
+			return ret;
+		}
+
+		if (!NVIDIA_P2P_DMA_MAPPING_VERSION_COMPATIBLE(dma_mapping)) {
+			peer_err("error, incompatible dma mapping version 0x%08x\n",
+				 dma_mapping->version);
+			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
+			return -EINVAL;
+		}
+
+		nv_mem_context->npages = dma_mapping->entries;
+
+		ret = sg_alloc_table(sg_head, dma_mapping->entries, GFP_KERNEL);
+		if (ret) {
+			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
+			return ret;
+		}
+
+		nv_mem_context->dma_mapping = dma_mapping;
+		nv_mem_context->sg_allocated = 1;
+		for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
+			sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
+			sg->dma_address = dma_mapping->dma_addresses[i];
+			sg->dma_length = nv_mem_context->page_size;
+		}
+	}
+#else
 	nv_mem_context->npages = PAGE_ALIGN(nv_mem_context->mapped_size) >>
 						GPU_PAGE_SHIFT;
 
-	if (nv_mem_context->page_table->entries != nv_mem_context->npages) {
+	if (page_table->entries != nv_mem_context->npages) {
 		peer_err("nv_dma_map -- unexpected number of page table entries got=%u, expected=%lu\n",
-					nv_mem_context->page_table->entries,
+					page_table->entries,
 					nv_mem_context->npages);
 		return -EINVAL;
 	}
@@ -214,13 +288,33 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		sg->dma_length = nv_mem_context->page_size;
 	}
 
+#endif
+
 	*nmap = nv_mem_context->npages;
+
 	return 0;
 }
 
 static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 			   struct device  *dma_device)
 {
+	struct nv_mem_context *nv_mem_context =
+		(struct nv_mem_context *)context;
+
+	if (!nv_mem_context) {
+		peer_err("nv_dma_unmap -- invalid nv_mem_context\n");
+		return -EINVAL;
+	}
+
+#if NV_DMA_MAPPING
+	{
+		struct pci_dev *pdev = to_pci_dev(dma_device);
+		if (nv_mem_context->dma_mapping)
+			nvidia_p2p_dma_unmap_pages(pdev, nv_mem_context->page_table,
+						   nv_mem_context->dma_mapping);
+	}
+#endif
+
 	return 0;
 }
 
