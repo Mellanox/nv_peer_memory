@@ -1,4 +1,10 @@
-nvidia-peer-memory (1.0-1) unstable; urgency=low
+nvidia-peer-memory (1.0-2) unstable; urgency=low
+
+  * Build infrastructure improvements
+
+ -- Yishai Hadas <yishaih@mellanox.com>  Thu, 03 Nov 2016 15:00:53 +0200
+
+vidia-peer-memory (1.0-1) unstable; urgency=low
 
   * Makefile: EXTRA_CFLAGS was deprecated [1] in newer kernels.
 
