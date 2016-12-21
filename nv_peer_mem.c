@@ -102,7 +102,11 @@ struct nv_mem_context {
 #if NV_DMA_MAPPING
 	struct nvidia_p2p_dma_mapping *dma_mapping;
 #endif
+#ifndef PEER_MEM_U64_CORE_CONTEXT
 	void *core_context;
+#else
+	u64 core_context;
+#endif
 	u64 page_virt_start;
 	u64 page_virt_end;
 	size_t mapped_size;
@@ -363,7 +367,11 @@ static int nv_mem_get_pages(unsigned long addr,
 			  size_t size, int write, int force,
 			  struct sg_table *sg_head,
 			  void *client_context,
+#ifndef PEER_MEM_U64_CORE_CONTEXT
 			  void *core_context)
+#else
+			  u64 core_context)
+#endif
 {
 	int ret;
 	struct nv_mem_context *nv_mem_context;
