@@ -310,6 +310,9 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 		return -EINVAL;
 	}
 
+	if (ACCESS_ONCE(nv_mem_context->is_callback))
+		goto out;
+
 #if NV_DMA_MAPPING
 	{
 		struct pci_dev *pdev = to_pci_dev(dma_device);
@@ -319,6 +322,7 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 	}
 #endif
 
+out:
 	return 0;
 }
 
