@@ -351,8 +351,10 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 
 
 out:
-	if (nv_mem_context->sg_allocated)
+	if (nv_mem_context->sg_allocated) {
 		sg_free_table(sg_head);
+		nv_mem_context->sg_allocated = 0;
+	}
 
 	return;
 }
