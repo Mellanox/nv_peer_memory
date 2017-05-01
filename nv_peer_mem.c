@@ -122,6 +122,9 @@ static void nv_get_p2p_free_callback(void *data)
 	int ret = 0;
 	struct nv_mem_context *nv_mem_context = (struct nv_mem_context *)data;
 	struct nvidia_p2p_page_table *page_table = NULL;
+#if NV_DMA_MAPPING
+	struct nvidia_p2p_dma_mapping *dma_mapping = NULL;
+#endif
 
 	__module_get(THIS_MODULE);
 	if (!nv_mem_context) {
@@ -138,12 +141,26 @@ static void nv_get_p2p_free_callback(void *data)
 	    in case it's called internally by that callback.
 	*/
 	page_table = nv_mem_context->page_table;
+
+#if NV_DMA_MAPPING
+	if (!nv_mem_context->dma_mapping) {
+		peer_err("nv_get_p2p_free_callback -- invalid dma_mapping\n");
+		goto out;
+	}
+	dma_mapping = nv_mem_context->dma_mapping;
+#endif
+
 	/* For now don't set nv_mem_context->page_table to NULL, 
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
 
 	ACCESS_ONCE(nv_mem_context->is_callback) = 1;
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
+#if NV_DMA_MAPPING
+	ret = nvidia_p2p_free_dma_mapping(dma_mapping); 
+	if (ret)
+                peer_err("nv_get_p2p_free_callback -- error %d while calling nvidia_p2p_free_dma_mapping()\n", ret);
+#endif
 	ret = nvidia_p2p_free_page_table(page_table);
 	if (ret)
 		peer_err("nv_get_p2p_free_callback -- error %d while calling nvidia_p2p_free_page_table()\n", ret);
@@ -251,6 +268,7 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 			peer_err("error, incompatible dma mapping version 0x%08x\n",
 				 dma_mapping->version);
 			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
+			nvidia_p2p_free_dma_mapping(dma_mapping);
 			return -EINVAL;
 		}
 
@@ -259,6 +277,7 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		ret = sg_alloc_table(sg_head, dma_mapping->entries, GFP_KERNEL);
 		if (ret) {
 			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
+			nvidia_p2p_free_dma_mapping(dma_mapping);
 			return ret;
 		}
 
@@ -316,9 +335,11 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 #if NV_DMA_MAPPING
 	{
 		struct pci_dev *pdev = to_pci_dev(dma_device);
-		if (nv_mem_context->dma_mapping)
+		if (nv_mem_context->dma_mapping) {
 			nvidia_p2p_dma_unmap_pages(pdev, nv_mem_context->page_table,
 						   nv_mem_context->dma_mapping);
+                        nvidia_p2p_free_dma_mapping(nv_mem_context->dma_mapping);
+		}
 	}
 #endif
 
