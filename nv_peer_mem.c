@@ -268,7 +268,6 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 			peer_err("error, incompatible dma mapping version 0x%08x\n",
 				 dma_mapping->version);
 			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
-			nvidia_p2p_free_dma_mapping(dma_mapping);
 			return -EINVAL;
 		}
 
@@ -277,7 +276,6 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		ret = sg_alloc_table(sg_head, dma_mapping->entries, GFP_KERNEL);
 		if (ret) {
 			nvidia_p2p_dma_unmap_pages(pdev, page_table, dma_mapping);
-			nvidia_p2p_free_dma_mapping(dma_mapping);
 			return ret;
 		}
 
@@ -335,11 +333,9 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 #if NV_DMA_MAPPING
 	{
 		struct pci_dev *pdev = to_pci_dev(dma_device);
-		if (nv_mem_context->dma_mapping) {
+		if (nv_mem_context->dma_mapping)
 			nvidia_p2p_dma_unmap_pages(pdev, nv_mem_context->page_table,
 						   nv_mem_context->dma_mapping);
-                        nvidia_p2p_free_dma_mapping(nv_mem_context->dma_mapping);
-		}
 	}
 #endif
 
