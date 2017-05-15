@@ -77,8 +77,8 @@
  */
 #if defined(NVIDIA_P2P_DMA_MAPPING_VERSION) &&	\
 	(NVIDIA_P2P_MAJOR_VERSION(NVIDIA_P2P_DMA_MAPPING_VERSION) >= 2)
-#pragma message("nvidia_p2p_dma_map_pages support disabled")
-#define NV_DMA_MAPPING 0
+#pragma message("Enable nvidia_p2p_dma_map_pages support")
+#define NV_DMA_MAPPING 1
 #else
 #define NV_DMA_MAPPING 0
 #endif
