@@ -28,22 +28,12 @@ Pre-requisites:
 For the required NVIDIA driver and other relevant details in that area
 please check with NVIDIA support.
 
-To build source packages (src.rpm for RPM based OS and tarball for DEB based OS), use the build_release.sh script.
+To build source packages (src.rpm for RPM based OS and tarball for DEB based OS), use the build_module.sh script.
 
 
 Example:
 
-    $ ./build_release.sh
-    Working in /tmp/nv.pg5HOW ...
-    Cloning from https://github.com/Mellanox/nv_peer_memory.git ...
-    Cloning into 'nv_peer_memory'...
-    remote: Counting objects: 46, done.
-    remote: Compressing objects: 100% (13/13), done.
-    remote: Total 46 (delta 2), reused 0 (delta 0), pack-reused 33
-    Unpacking objects: 100% (46/46), done.
-    Checking connectivity... done.
-    Checking out branch: master ...
-    Already on 'master'
+    $ ./build_module.sh
 
     Building source rpm for nvidia_peer_memory...
     Building debian tarball for nvidia-peer-memory...
