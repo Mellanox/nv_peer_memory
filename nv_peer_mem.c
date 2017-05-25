@@ -47,7 +47,7 @@
 
 
 #define DRV_NAME	"nv_mem"
-#define DRV_VERSION	"1.0"
+#define DRV_VERSION	"1.0-4"
 #define DRV_RELDATE	__DATE__
 
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
@@ -77,8 +77,8 @@
  */
 #if defined(NVIDIA_P2P_DMA_MAPPING_VERSION) &&	\
 	(NVIDIA_P2P_MAJOR_VERSION(NVIDIA_P2P_DMA_MAPPING_VERSION) >= 2)
-#pragma message("nvidia_p2p_dma_map_pages support disabled")
-#define NV_DMA_MAPPING 0
+#pragma message("Enable nvidia_p2p_dma_map_pages support")
+#define NV_DMA_MAPPING 1
 #else
 #define NV_DMA_MAPPING 0
 #endif

@@ -1,3 +1,9 @@
+nvidia-peer-memory (1.0-4) unstable; urgency=low
+
+  *  Stable NV_DMA_MAPPING
+
+ -- Feras Daoud <ferasda@mellanox.com>  Wed, 15 May 2017 11:20:20 +0200
+
 nvidia-peer-memory (1.0-3) unstable; urgency=low
 
   *  Bar address re-mapping for POWER
