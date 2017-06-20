@@ -36,7 +36,7 @@ do
 	if [ ! -e "$nvidia_mod" ]; then
 		continue
 	fi
-	if ! (nm -o $nvidia_mod | grep -q "__crc_nvidia_p2p_"); then
+	if ! (nm -o $nvidia_mod | grep -q " nvidia_p2p_"); then
 		continue
 	fi
 
