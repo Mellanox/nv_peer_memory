@@ -29,6 +29,9 @@
 MOD_SYMVERS=nv.symvers
 KVER=${1:-$(uname -r)}
 
+# Create empty symvers file
+echo -n "" > $MOD_SYMVERS
+
 nvidia_mod=
 for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko 2>/dev/null)
 do
@@ -41,7 +44,6 @@ do
 	fi
 
 	echo "Getting symbol versions from $nvidia_mod ..."
-	echo -n "" > $MOD_SYMVERS
 	while read -r line
 	do
 		file=$(echo $line | cut -f1 -d: | sed -e 's@\./@@' -e 's@.ko@@' -e "s@$PWD/@@")
@@ -58,4 +60,8 @@ if [ ! -e "$nvidia_mod" ]; then
 	echo "-E- Cannot locate nvidia modules!" >&2
 	echo "CUDA driver must be installed before installing this package!" >&2
 	exit 1
+fi
+
+if [ ! -s "$MOD_SYMVERS" ]; then
+	echo "-W- Could not get list of nvidia symbols." >&2
 fi
