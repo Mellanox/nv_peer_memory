@@ -1,3 +1,9 @@
+nvidia-peer-memory (1.0-5) unstable; urgency=low
+
+  *  Support kernels with CONFIG_MODVERSIONS unset
+
+ -- Feras Daoud <ferasda@mellanox.com>  Sun, 20 Aug 2017 15:45:30 +0200
+
 nvidia-peer-memory (1.0-4) unstable; urgency=low
 
   *  Stable NV_DMA_MAPPING
