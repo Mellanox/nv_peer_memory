@@ -3,11 +3,12 @@ obj-m += nv_peer_mem.o
 PHONY += all clean install uninstall gen_nv_symvers
 .PHONY: $(PHONY)
 
-OFA_KERNEL ?= $(shell (test -d /usr/src/ofa_kernel/default && echo /usr/src/ofa_kernel/default) || (test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build))
+KVER := $(shell uname -r)
+OFA_DIR ?= /usr/src/ofa_kernel
+OFA_KERNEL ?= $(shell ( test -d $(OFA_DIR)/$(KVER) && echo $(OFA_DIR)/$(KVER) ) || ( test -d $(OFA_DIR)/default && echo $(OFA_DIR)/default ) || ( test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build ) || ( echo $(OFA_DIR) ))
 
 ccflags-y += -I$(OFA_KERNEL)/include/ -I$(OFA_KERNEL)/include/rdma
 PWD  := $(shell pwd)
-KVER := $(shell uname -r)
 MODULES_DIR := /lib/modules/$(KVER)
 KDIR := $(MODULES_DIR)/build
 MODULE_DESTDIR := $(MODULES_DIR)/extra/
