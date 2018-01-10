@@ -38,12 +38,12 @@ Example:
     Building source rpm for nvidia_peer_memory...
     Building debian tarball for nvidia-peer-memory...
 
-    Built: /tmp/nvidia_peer_memory-1.0-5.src.rpm
+    Built: /tmp/nvidia_peer_memory-1.0-6.src.rpm
     Built: /tmp/nvidia-peer-memory_1.0.orig.tar.gz
 
 To install on RPM based OS:
 
-    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.0-5.src.rpm
+    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.0-6.src.rpm
     # rpm -ivh <path to generated binary rpm file>
 
 To install on DEB based OS:
@@ -64,8 +64,8 @@ To install on Ubuntu run:
     dpkg-buildpackage -us -uc
     dpkg -i <path to generated deb files.>
 
-    (e.g. dpkg -i nv-peer-memory_1.0-5_all.deb
-          dpkg -i nv-peer-memory-dkms_1.0-5_all.deb)
+    (e.g. dpkg -i nv-peer-memory_1.0-6_all.deb
+          dpkg -i nv-peer-memory-dkms_1.0-6_all.deb)
 
 After successful installation:
 1)	nv_peer_mem.ko is installed
