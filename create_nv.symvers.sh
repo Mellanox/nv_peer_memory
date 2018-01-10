@@ -25,12 +25,50 @@
 # notice, one of the license notices in the documentation
 # and/or other materials provided with the distribution.
 #
+SCRIPTPATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
 
-MOD_SYMVERS=nv.symvers
+MOD_SYMVERS=${SCRIPTPATH}/nv.symvers
 KVER=${1:-$(uname -r)}
 
 # Create empty symvers file
 echo -n "" > $MOD_SYMVERS
+
+try_compile_nvidia_sources()
+{
+	local mod=$1; shift
+
+	nv_version=$(/sbin/modinfo -F version -k "$KVER" $mod 2>/dev/null)
+	nv_sources=$(/bin/ls -d /usr/src/nvidia-${nv_version}/ 2>/dev/null)
+	if [ "X${nv_sources}" == "X" ]; then
+		nv_sources=$(/bin/ls -1d /usr/src/nvidia-* 2>/dev/null | tail -1)
+	fi
+	if [ "X${nv_sources}" == "X" ]; then
+		return
+	fi
+
+	echo
+	echo "Attempting to compile nvidia from $nv_sources sources to build Module.symvers..."
+	echo
+	local tmpdir=`mktemp -d /tmp/nv.XXXXXX`
+	if [ ! -d "$tmpdir" ]; then
+		echo "-E- Failed to create a temp directory!" >&2
+		exit 1
+	fi
+	/bin/cp -a $nv_sources $tmpdir
+	cd $tmpdir/*
+	make -j8 NV_EXCLUDE_BUILD_MODULES='' KERNEL_UNAME=$KVER clean
+	if [ $? -ne 0 ]; then
+		return
+	fi
+	make -j8 NV_EXCLUDE_BUILD_MODULES='' KERNEL_UNAME=$KVER modules
+	if [ $? -ne 0 ]; then
+		return
+	fi
+	grep "nvidia_p2p_" Module*.symvers > ${MOD_SYMVERS}
+	echo "Created: ${MOD_SYMVERS}"
+	cd -
+	/bin/rm -rf $tmpdir
+}
 
 nvidia_mod=
 for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko 2>/dev/null)
@@ -41,6 +79,17 @@ do
 	fi
 	if ! (nm -o $nvidia_mod | grep -q "__crc_nvidia_p2p_"); then
 		continue
+	fi
+
+	# On some PPC kernels we might have relative CRCs, so we can't build symvers based on nm output.
+	# In that case try to recompile the nvidia driver from source code and get the needed
+	# nvidia_p2p_* symbols from the generated Module.symvers file.
+	# If we fail to generate Module.symvers, then just build the nv_peer_mem without
+	# specifying the nvidia_p2p_ symbol versions.
+	if (nm -o $nvidia_mod | grep "__crc_nvidia_p2p_" | grep -qe "\sR\s*__crc"); then
+		echo "-W- Module $nvidia_mod contains relative CRCs, cannot get symbols from it!" >&2
+		try_compile_nvidia_sources $nvidia_mod
+		break
 	fi
 
 	echo "Getting symbol versions from $nvidia_mod ..."
