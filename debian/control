@@ -14,7 +14,7 @@ Description: nvidia peer memory kernel module.
 Package: nvidia-peer-memory-dkms
 Section: kernel
 Architecture: all
-Depends: dkms, make, ${misc:Depends}
+Depends: dkms, make, mlnx-ofed-kernel-dkms | mlnx-ofed-kernel-modules, ${misc:Depends}
 Recommends: linux-headers-arm64 | linux-headers-powerpc | linux-headers-ppc64 | linux-headers-ppc64le | linux-headers-amd64 | linux-headers-generic | linux-headers
 Description: DKMS support for nvidia-peer-memory kernel modules
  This package provides integration with the DKMS infrastructure for automatically building out of tree kernel modules.
