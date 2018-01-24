@@ -3,11 +3,12 @@ obj-m += nv_peer_mem.o
 PHONY += all clean install uninstall gen_nv_symvers
 .PHONY: $(PHONY)
 
-OFA_KERNEL ?= $(shell (test -d /usr/src/ofa_kernel/default && echo /usr/src/ofa_kernel/default) || (test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build))
+KVER := $(shell uname -r)
+OFA_DIR ?= /usr/src/ofa_kernel
+OFA_KERNEL ?= $(shell ( test -d $(OFA_DIR)/$(KVER) && echo $(OFA_DIR)/$(KVER) ) || ( test -d $(OFA_DIR)/default && echo $(OFA_DIR)/default ) || ( test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build ) || ( echo $(OFA_DIR) ))
 
 ccflags-y += -I$(OFA_KERNEL)/include/ -I$(OFA_KERNEL)/include/rdma
 PWD  := $(shell pwd)
-KVER := $(shell uname -r)
 MODULES_DIR := /lib/modules/$(KVER)
 KDIR := $(MODULES_DIR)/build
 MODULE_DESTDIR := $(MODULES_DIR)/extra/
@@ -41,7 +42,14 @@ endif
 
 #
 # Get nv-p2p.h header file of the currently installed CUDA version.
+# Try to get it based on available nvidia module version (just in case there are sources for couple of versions)
+nv_version=$(shell /sbin/modinfo -F version -k $(KVER) nvidia 2>/dev/null)
+nv_sources=$(shell /bin/ls -d /usr/src/nvidia-$(nv_version)/ 2>/dev/null)
+ifneq ($(shell test -d "$(nv_sources)" && echo "true" || echo "" ),)
+NV_P2P_H=$(shell /bin/ls -1 $(nv_sources)/nvidia/nv-p2p.h 2>/dev/null | tail -1)
+else
 NV_P2P_H=$(shell /bin/ls -1 /usr/src/nvidia-*/nvidia/nv-p2p.h 2>/dev/null | tail -1)
+endif
 
 all: gen_nv_symvers
 ifneq ($(shell test -e "$(NV_P2P_H)" && echo "true" || echo "" ),)

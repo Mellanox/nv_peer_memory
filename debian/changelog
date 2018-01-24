@@ -1,3 +1,13 @@
+nvidia-peer-memory (1.0-6) unstable; urgency=low
+
+  *  debian: Add dependency on cuda
+  *  debian: Add dependency on mlnx-ofed-kernel
+  *  create_nv.symvers.sh: W/A for PPC kernels with relative CRCs
+  *  Makefile: Try to get nv-p2p.h based on available nvidia module version
+  *  Makefile: Fix getting ofa_kernel path
+
+ -- Alaa Hleihel <alaa@mellanox.com> Wed, 10 Jan 2018 15:45:30 +0200
+
 nvidia-peer-memory (1.0-5) unstable; urgency=low
 
   *  Support kernels with CONFIG_MODVERSIONS unset
