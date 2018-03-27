@@ -154,7 +154,7 @@ static void nv_get_p2p_free_callback(void *data)
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
 
-	ACCESS_ONCE(nv_mem_context->is_callback) = 1;
+	WRITE_ONCE(nv_mem_context->is_callback, 1);
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
 #if NV_DMA_MAPPING
 	ret = nvidia_p2p_free_dma_mapping(dma_mapping); 
@@ -327,7 +327,7 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 		return -EINVAL;
 	}
 
-	if (ACCESS_ONCE(nv_mem_context->is_callback))
+	if (READ_ONCE(nv_mem_context->is_callback))
 		goto out;
 
 #if NV_DMA_MAPPING
@@ -350,7 +350,7 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 
-	if (ACCESS_ONCE(nv_mem_context->is_callback))
+	if (READ_ONCE(nv_mem_context->is_callback))
 		goto out;
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
