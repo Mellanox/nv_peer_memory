@@ -71,12 +71,22 @@ try_compile_nvidia_sources()
 }
 
 nvidia_mod=
-for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko 2>/dev/null)
+for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko* 2>/dev/null)
 do
 	nvidia_mod=$(/sbin/modinfo -F filename -k "$KVER" $mod 2>/dev/null)
 	if [ ! -e "$nvidia_mod" ]; then
 		continue
 	fi
+
+	# WA for nm: nvidia.ko.xz: File format not recognized
+	case "$nvidia_mod" in
+		*ko.xz)
+			/bin/cp -fv $nvidia_mod .
+			nvidia_mod=$(basename $nvidia_mod | sed -e "s/.xz//g")
+			xz -d ${nvidia_mod}.xz
+			;;
+	esac
+
 	if ! (nm -o $nvidia_mod | grep -q "__crc_nvidia_p2p_"); then
 		continue
 	fi
@@ -95,7 +105,7 @@ do
 	echo "Getting symbol versions from $nvidia_mod ..."
 	while read -r line
 	do
-		file=$(echo $line | cut -f1 -d: | sed -e 's@\./@@' -e 's@.ko@@' -e "s@$PWD/@@")
+		file=$(echo $line | cut -f1 -d: | sed -r -e 's@\./@@' -e 's@.ko(\S)*@@' -e "s@$PWD/@@")
 		crc=$(echo $line | cut -f2 -d: | cut -f1 -d" ")
 		sym=$(echo $line | cut -f2 -d: | cut -f3 -d" " | sed -e 's/__crc_//g')
 		echo -e "0x$crc\t$sym\t$file" >> $MOD_SYMVERS
