@@ -40,16 +40,28 @@ if [ -f /etc/debian_version ]; then
     ex mv nvidia-peer-memory_$VERSION.orig.tar.gz /tmp
     popd > /dev/null
 
-    echo ""
-    echo Built: /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz
-    echo ""
-    echo "To install on DEB based OS:"
-    echo "    # cd /tmp"
-    echo "    # tar xzf /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz"
-    echo "    # cd nvidia-peer-memory-$VERSION"
-    echo "    # dpkg-buildpackage -us -uc"
-    echo "    # dpkg -i <path to generated deb files>"
-    echo ""
+    if [ $1 == "install_debian" ]; then
+       cd /tmp
+       tar xzf /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz
+       cd nvidia-peer-memory-$VERSION
+       dpkg-buildpackage -us -uc
+       echo "Install deb packages..."
+       dpkg -i ../nvidia-peer*.deb
+       cd ..
+       /bin/rm -rf nvidia-peer-memory-$VERSION
+       /bin/rm -rf nvidia-peer-memory.deb nvidia-peer-memory_$VERSION.orig.tar.gz
+    else
+        echo ""
+        echo Built: /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz
+        echo ""
+        echo "To install on DEB based OS:"
+        echo "    # cd /tmp"
+        echo "    # tar xzf /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz"
+        echo "    # cd nvidia-peer-memory-$VERSION"
+        echo "    # dpkg-buildpackage -us -uc"
+        echo "    # dpkg -i <path to generated deb files>"
+        echo ""
+    fi
 else
     echo
     echo "Building source rpm for nvidia_peer_memory..."
