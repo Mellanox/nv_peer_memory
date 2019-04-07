@@ -1,0 +1,28 @@
+---
+# playbook for install Mellanox OFED GPUDirect
+#
+# Author: Vitaliy Razinkov <vitaliyra@mellanox.com>
+#
+# Requirements: MLNX_OFED 2.1 is installed and up.
+- hosts: all
+  vars:
+    repo_name: "https://github.com/Mellanox/nv_peer_memory.git"
+  tasks:
+    - name: checking the Mellanox OFED is installed
+      stat:
+        path: /usr/bin/ofed_info
+      register: ofed_installed
+    - block:
+      - name: Clone git repo Download MOFED image
+        warn: false
+        git:
+          repo: {{ repo_name }}
+          dest: /tmp
+      - name: Install Mellanox GPUDirect
+        warn: false
+        shell: |
+          cd /tmp/nv_peer_memory
+          ./build_module.sh install_debian
+      when: ofed_installed.stat.exists
+  tags:
+    - gpudirect
