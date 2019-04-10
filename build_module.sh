@@ -49,7 +49,7 @@ if [ -f /etc/debian_version ]; then
        dpkg -i ../nvidia-peer*.deb
        cd ..
        /bin/rm -rf nvidia-peer-memory-$VERSION
-       /bin/rm -rf nvidia-peer-memory.deb nvidia-peer-memory_$VERSION.orig.tar.gz
+       /bin/rm -rf nvidia-peer-memory*.deb nvidia-peer-memory_$VERSION.orig.tar.gz
     else
         echo ""
         echo Built: /tmp/nvidia-peer-memory_$VERSION.orig.tar.gz
