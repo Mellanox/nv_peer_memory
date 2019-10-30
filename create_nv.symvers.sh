@@ -71,6 +71,7 @@ try_compile_nvidia_sources()
 }
 
 nvidia_mod=
+modules_pat="__crc_nvidia_p2p_|T nvidia_p2p_"
 for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko* 2>/dev/null)
 do
 	nvidia_mod=$(/sbin/modinfo -F filename -k "$KVER" $mod 2>/dev/null)
@@ -87,7 +88,7 @@ do
 			;;
 	esac
 
-	if ! (nm -o $nvidia_mod | grep -q "__crc_nvidia_p2p_"); then
+	if ! (nm -o $nvidia_mod | grep -q -E "$modules_pat"); then
 		continue
 	fi
 
@@ -109,7 +110,7 @@ do
 		crc=$(echo $line | cut -f2 -d: | cut -f1 -d" ")
 		sym=$(echo $line | cut -f2 -d: | cut -f3 -d" " | sed -e 's/__crc_//g')
 		echo -e "0x$crc\t$sym\t$file" >> $MOD_SYMVERS
-	done < <(nm -o $nvidia_mod | grep "__crc_nvidia_p2p_")
+	done < <(nm -o $nvidia_mod | grep -E "$modules_pat")
 
 	echo "Created: ${MOD_SYMVERS}"
 	exit 0
