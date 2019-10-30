@@ -1,0 +1,8 @@
+*.substvars
+*.debhelper
+*.debhelper.log
+.debhelper/
+files
+nvidia-peer-memory-dkms/
+nvidia-peer-memory/
+
