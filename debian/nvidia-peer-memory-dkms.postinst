@@ -1,25 +1,16 @@
 #!/bin/sh
+
 set -e
 
-# Get the package version
-package=nvidia-peer-memory
-version=`dpkg-query -W -f='${Version}' "$package-dkms" \
-    | sed -e 's/[+-].*//'`
-
-isadded=`dkms status -m "$name" -v "$version"`
-
-if [ "x${isadded}" = "x" ] ; then
-    dkms add -m "$package" -v "$version"
-fi
-
-if [ "$1" = 'configure' ] ; then
-    dkms build -m "$package" -v "$version" && dkms install -m "$package" -v "$version" --force || true
-fi
-
-set +e
-rmmod nv_peer_mem >/dev/null 2>&1
-modprobe nv_peer_mem
-
 #DEBHELPER#
+
+module="nv_peer_mem"
+# Load the module if it was installed
+if lsmod | grep -q -w "$module"; then
+	rmmod "$module" 2>/dev/null || :
+fi
+if modinfo -n "$module" >/dev/null 2>&1; then
+	modprobe nv_peer_mem
+fi
 
 exit 0

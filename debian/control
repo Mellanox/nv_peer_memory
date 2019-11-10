@@ -2,7 +2,7 @@ Source: nvidia-peer-memory
 Section: kernel
 Priority: optional
 Maintainer: Yishai Hadas <yishaih@mellanox.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, bzip2, dkms
+Build-Depends: debhelper (>= 9.0), autotools-dev, bzip2, dkms
 Standards-Version: 1.0
 Homepage: http://www.mellanox.com
 
