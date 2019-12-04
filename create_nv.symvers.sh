@@ -71,7 +71,9 @@ try_compile_nvidia_sources()
 }
 
 nvidia_mod=
-modules_pat="__crc_nvidia_p2p_|T nvidia_p2p_"
+crc_found=0
+crc_mod_str="__crc_nvidia_p2p_"
+modules_pat="$crc_mod_str|T nvidia_p2p_"
 for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko* 2>/dev/null)
 do
 	nvidia_mod=$(/sbin/modinfo -F filename -k "$KVER" $mod 2>/dev/null)
@@ -97,7 +99,7 @@ do
 	# nvidia_p2p_* symbols from the generated Module.symvers file.
 	# If we fail to generate Module.symvers, then just build the nv_peer_mem without
 	# specifying the nvidia_p2p_ symbol versions.
-	if (nm -o $nvidia_mod | grep "__crc_nvidia_p2p_" | grep -qe "\sR\s*__crc"); then
+	if (nm -o $nvidia_mod | grep "$crc_mod_str" | grep -qe "\sR\s*__crc"); then
 		echo "-W- Module $nvidia_mod contains relative CRCs, cannot get symbols from it!" >&2
 		try_compile_nvidia_sources $nvidia_mod
 		break
@@ -106,6 +108,13 @@ do
 	echo "Getting symbol versions from $nvidia_mod ..."
 	while read -r line
 	do
+		if echo "$line" | grep -q "$crc_mod_str"; then
+			crc_found=1
+		else
+			if [ "$crc_found" != 0 ]; then
+				continue
+			fi
+		fi
 		file=$(echo $line | cut -f1 -d: | sed -r -e 's@\./@@' -e 's@.ko(\S)*@@' -e "s@$PWD/@@")
 		crc=$(echo $line | cut -f2 -d: | cut -f1 -d" ")
 		sym=$(echo $line | cut -f2 -d: | cut -f3 -d" " | sed -e 's/__crc_//g')
