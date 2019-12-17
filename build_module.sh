@@ -28,7 +28,7 @@ fi
 
 ex cp -r . $tmpdir/nvidia_peer_memory-$VERSION
 pushd $tmpdir > /dev/null
-ex tar czf nvidia_peer_memory-$VERSION.tar.gz nvidia_peer_memory-$VERSION --exclude=.* --exclude=build_release.sh
+ex tar czf nvidia_peer_memory-$VERSION.tar.gz  --exclude='.*' --exclude=build_release.sh nvidia_peer_memory-$VERSION
 popd > /dev/null
 
 if [ -f /etc/debian_version ]; then
@@ -36,7 +36,7 @@ if [ -f /etc/debian_version ]; then
     echo "Building debian tarball for nvidia-peer-memory..."
     ex mv $tmpdir/nvidia_peer_memory-$VERSION $tmpdir/nvidia-peer-memory-$VERSION
     pushd $tmpdir > /dev/null
-    ex tar czf nvidia-peer-memory_$VERSION.orig.tar.gz nvidia-peer-memory-$VERSION --exclude=.* --exclude=build_release.sh
+    ex tar czf nvidia-peer-memory_$VERSION.orig.tar.gz --exclude='.*' --exclude=build_release.sh nvidia-peer-memory-$VERSION
     ex mv nvidia-peer-memory_$VERSION.orig.tar.gz /tmp
     popd > /dev/null
 
