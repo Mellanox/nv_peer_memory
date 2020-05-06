@@ -1,3 +1,12 @@
+nvidia-peer-memory (1.0-9) unstable; urgency=low
+
+  *  create_nv.symvers.sh: avoid non-crc syms on old
+  *  build_module.sh: Reorder parameters of tar
+  *  deb: simpler dkms script and more
+  *  create_syms_fix.sh: also look for nvidia_p2p_* symbols
+
+ -- Feras Daoud <ferasda@mellanox.com>  Tue, 05 May 2020 19:43:30 +0200
+
 nvidia-peer-memory (1.0-8) unstable; urgency=low
 
   *  create_nv.symvers.sh: Support compressed modules
