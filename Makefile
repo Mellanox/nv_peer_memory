@@ -7,7 +7,14 @@ KVER := $(shell uname -r)
 OFA_DIR ?= /usr/src/ofa_kernel
 OFA_KERNEL ?= $(shell ( test -d $(OFA_DIR)/$(KVER) && echo $(OFA_DIR)/$(KVER) ) || ( test -d $(OFA_DIR)/default && echo $(OFA_DIR)/default ) || ( test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build ) || ( echo $(OFA_DIR) ))
 
+ifneq ($(shell test -d $(OFA_KERNEL) && echo "true" || echo "" ),)
+$(info INFO: Building with MLNX_OFED from: $(OFA_KERNEL))
 ccflags-y += -I$(OFA_KERNEL)/include/ -I$(OFA_KERNEL)/include/rdma
+else
+$(info INFO: Building with Inbox InfiniBand Stack)
+$(warning "WARNING: Compilation might fail against Inbox InfiniBand Stack as it might lack needed support; in such cases you need to install MLNX_OFED package first.")
+endif
+
 PWD  := $(shell pwd)
 MODULES_DIR := /lib/modules/$(KVER)
 KDIR := $(MODULES_DIR)/build
@@ -29,9 +36,9 @@ CPP_PATCH := $(shell $(CPP) -dumpversion 2>&1 | cut -d'.' -f3)
 CPP_VERS  := $(shell expr 0$(CPP_MAJOR) \* 1000000 + 0$(CPP_MINOR) \* 1000 + 0$(CPP_PATCH))
 compile_h=$(shell /bin/ls -1 $(KDIR)/include/*/compile.h 2> /dev/null | head -1)
 ifneq ($(compile_h),)
-KERNEL_GCC_MAJOR := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc version ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f1)
-KERNEL_GCC_MINOR := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc version ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f2)
-KERNEL_GCC_PATCH := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc version ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f3)
+KERNEL_GCC_MAJOR := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc \S+ ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f1)
+KERNEL_GCC_MINOR := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc \S+ ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f2)
+KERNEL_GCC_PATCH := $(shell grep LINUX_COMPILER $(compile_h) | sed -r -e 's/.*gcc \S+ ([0-9\.\-]*) .*/\1/g' | cut -d'.' -f3)
 KERNEL_GCC_VER  := $(shell expr 0$(KERNEL_GCC_MAJOR) \* 1000000 + 0$(KERNEL_GCC_MINOR) \* 1000 + 0$(KERNEL_GCC_PATCH))
 ifneq ($(shell if [ $(CPP_VERS) -lt 4006000 ] && [ $(KERNEL_GCC_VER) -ge 4006000 ]; then \
                              echo "YES"; else echo ""; fi),)
@@ -59,17 +66,21 @@ else
 	$(info Warning: nv-p2p.h was not found on the system, going to use compat_nv-p2p.h)
 	/bin/cp -f $(PWD)/compat_nv-p2p.h $(PWD)/nv-p2p.h
 endif
-	cp -rf $(OFA_KERNEL)/Module.symvers .
-	cat nv.symvers >> Module.symvers
-	make -C $(KDIR) $(MAKE_PARAMS) M=$(PWD) modules
+	echo -n "" > my.symvers
+ifneq ($(shell test -d $(OFA_KERNEL) && echo "true" || echo "" ),)
+	# get OFED symbols when building with MLNX_OFED
+	/bin/cp -f $(OFA_KERNEL)/Module.symvers my.symvers
+endif
+	cat nv.symvers >> my.symvers
+	make -C $(KDIR) $(MAKE_PARAMS) M=$(PWD) KBUILD_EXTRA_SYMBOLS="$(PWD)/my.symvers" modules
 
 clean:
 	make -C $(KDIR)  M=$(PWD) clean
-	/bin/rm -f nv.symvers nv-p2p.h
+	/bin/rm -f nv.symvers my.symvers nv-p2p.h
 
 install:
 	mkdir -p $(DESTDIR)/$(MODULE_DESTDIR);
-	cp -f $(PWD)/nv_peer_mem.ko $(DESTDIR)/$(MODULE_DESTDIR);
+	/bin/cp -f $(PWD)/nv_peer_mem.ko $(DESTDIR)/$(MODULE_DESTDIR);
 	if [ ! -n "$(DESTDIR)" ]; then $(DEPMOD) -r -ae $(KVER);fi;
 
 uninstall:
