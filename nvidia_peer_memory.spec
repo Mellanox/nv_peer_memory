@@ -1,12 +1,12 @@
 %define debug_package %{nil}
-%{!?_release: %define _release 9}
+%{!?_release: %define _release 0}
 %{!?KVERSION: %define KVERSION %(uname -r)}
 
 %define MODPROBE %(if ( /sbin/modprobe -c | grep -q '^allow_unsupported_modules  *0'); then echo -n "/sbin/modprobe --allow-unsupported-modules"; else echo -n "/sbin/modprobe"; fi )
 
 Summary: nvidia_peer_memory
 Name: nvidia_peer_memory
-Version: 1.0
+Version: 1.1
 Release: %{_release}
 License: GPL
 Group: System Environment/Libraries
