@@ -118,7 +118,7 @@ do
 		file=$(echo $line | cut -f1 -d: | sed -r -e 's@\./@@' -e 's@.ko(\S)*@@' -e "s@$PWD/@@")
 		crc=$(echo $line | cut -f2 -d: | cut -f1 -d" ")
 		sym=$(echo $line | cut -f2 -d: | cut -f3 -d" " | sed -e 's/__crc_//g')
-		echo -e "0x$crc\t$sym\t$file" >> $MOD_SYMVERS
+		echo -e "0x$crc\t$sym\t$file\tEXPORT_SYMBOL\t" >> $MOD_SYMVERS
 	done < <(nm -o $nvidia_mod | grep -E "$modules_pat")
 
 	echo "Created: ${MOD_SYMVERS}"
