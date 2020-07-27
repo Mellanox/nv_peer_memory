@@ -64,8 +64,8 @@ To install on Ubuntu run:
     dpkg-buildpackage -us -uc
     dpkg -i <path to generated deb files.>
 
-    (e.g. dpkg -i nv-peer-memory_1.0-9_all.deb
-          dpkg -i nv-peer-memory-dkms_1.0-9_all.deb)
+    (e.g. dpkg -i nvidia-peer-memory_1.0-9_all.deb
+          dpkg -i nvidia-peer-memory-dkms_1.0-9_all.deb)
 
 After successful installation:
 1)	nv_peer_mem.ko is installed
