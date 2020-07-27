@@ -1,3 +1,11 @@
+nvidia-peer-memory (1.1-0) unstable; urgency=low
+
+  *  Makefile: Support compiling without MLNX_OFED
+  *  Makefile: Imporve parsing /proc/version
+  *  Add EXPORT_SYMBOL to symver
+
+ -- Feras Daoud <ferasda@nvidia.com>  Mon, 27 Jul 2020 16:01:20 +0200
+
 nvidia-peer-memory (1.0-9) unstable; urgency=low
 
   *  create_nv.symvers.sh: avoid non-crc syms on old
