@@ -21,6 +21,12 @@ KDIR := $(MODULES_DIR)/build
 MODULE_DESTDIR := $(MODULES_DIR)/extra/
 DEPMOD := /sbin/depmod
 
+MOD_NAME := nv_peer_mem
+MOD_VERSION := $(shell awk '/^Version:/ {print $$2}' nvidia_peer_memory.spec)
+DKMS_SRC_DIR := /usr/src/$(MOD_NAME)-$(MOD_VERSION)
+SOURCE_FILES := Makefile compat_nv-p2p.h nv_peer_mem.c \
+  create_nv.symvers.sh dkms.conf
+
 # GCC earlier than 4.6.0 will build modules which require 'mcount',
 # and this symbol will not be available in the kernel if the kernel was
 # compiled with GCC 4.6.0 and above.
@@ -82,6 +88,18 @@ install:
 	mkdir -p $(DESTDIR)/$(MODULE_DESTDIR);
 	/bin/cp -f $(PWD)/nv_peer_mem.ko $(DESTDIR)/$(MODULE_DESTDIR);
 	if [ ! -n "$(DESTDIR)" ]; then $(DEPMOD) -r -ae $(KVER);fi;
+
+install-dkms: $(SOURCE_FILES)
+	install -d $(DESTDIR)$(DKMS_SRC_DIR)
+	cp -a $^ $(DESTDIR)$(DKMS_SRC_DIR)
+
+install-utils:
+	install -d $(DESTDIR)/etc/infiniband
+	install -d $(DESTDIR)/etc/init.d
+	install -d $(DESTDIR)/etc/init
+	install -m 0644 nv_peer_mem.conf	$(DESTDIR)/etc/infiniband/nv_peer_mem.conf
+	install -m 0755 nv_peer_mem		$(DESTDIR)/etc/init.d/nv_peer_mem
+	install -m 0644 nv_peer_mem.upstart	$(DESTDIR)/etc/init/nv_peer_mem.conf
 
 uninstall:
 	/bin/rm -f $(DESTDIR)/$(MODULE_DESTDIR)/nv_peer_mem.ko
