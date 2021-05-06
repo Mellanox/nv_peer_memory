@@ -22,8 +22,8 @@ MODULE_DESTDIR := $(MODULES_DIR)/extra/
 DEPMOD := /sbin/depmod
 
 MOD_NAME := nv_peer_mem
-MOD_VERSION := $(shell awk '/^Version:/ {print $$2}' nvidia_peer_memory.spec)
-DKMS_SRC_DIR := /usr/src/$(MOD_NAME)-$(MOD_VERSION)
+MOD_VERSION = $(shell awk '/^Version:/ {print $$2}' nvidia_peer_memory.spec)
+DKMS_SRC_DIR = /usr/src/$(MOD_NAME)-$(MOD_VERSION)
 SOURCE_FILES := Makefile compat_nv-p2p.h nv_peer_mem.c \
   create_nv.symvers.sh dkms.conf
 
