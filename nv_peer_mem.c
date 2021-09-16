@@ -52,6 +52,16 @@
 
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
+static int enable_dbg = 0;
+#define peer_dbg(FMT, ARGS...)                                          \
+        do {                                                            \
+                if (enable_dbg /*&& printk_ratelimit()*/)		\
+                        printk(KERN_ERR DRV_NAME " DBG %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS); \
+        } while(0)
+
+module_param(enable_dbg, int, 0000);
+MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
+
 #ifndef NVIDIA_P2P_MAJOR_VERSION_MASK
 #define NVIDIA_P2P_MAJOR_VERSION_MASK   0xffff0000
 #endif
@@ -162,7 +172,7 @@ static void nv_get_p2p_free_callback(void *data)
 	/* For now don't set nv_mem_context->page_table to NULL, 
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
-
+        peer_dbg("calling mem_invalidate_callback\n");
 	nv_mem_context->callback_task = current;
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
 	nv_mem_context->callback_task = NULL;
@@ -319,9 +329,9 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		sg->dma_length = nv_mem_context->page_size;
 	}
 #endif
-
 	nv_mem_context->sg_allocated = 1;
 	nv_mem_context->sg_head = *sg_head;
+	peer_dbg("allocated sg_head.sgl=%p\n", nv_mem_context->sg_head.sgl);
 	*nmap = nv_mem_context->npages;
 
 	return 0;
@@ -340,7 +350,9 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 
 	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
 		return -EINVAL;
-	
+
+        peer_dbg("nv_mem_context=%p\n", nv_mem_context);
+
 	if (nv_mem_context->callback_task == current)
 		goto out;
 
@@ -372,6 +384,8 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
 		return;
 
+	peer_dbg("nv_mem_context=%p\n", nv_mem_context);
+
 	if (nv_mem_context->callback_task == current)
 		return;
 
@@ -395,6 +409,7 @@ static void nv_mem_release(void *context)
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 	if (nv_mem_context->sg_allocated) {
+		peer_dbg("freeing sg_head.sgl=%p\n", nv_mem_context->sg_head.sgl);
 		sg_free_table(&nv_mem_context->sg_head);
 		nv_mem_context->sg_allocated = 0;
 	}
