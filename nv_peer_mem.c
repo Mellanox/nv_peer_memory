@@ -364,10 +364,15 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 
-	if (nv_mem_context->callback_task == current)
+	if (!nv_mem_context) {
+		peer_err("nv_mem_put_pages -- invalid nv_mem_context\n");
 		return;
+	}
 
 	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
+		return;
+
+	if (nv_mem_context->callback_task == current)
 		return;
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
