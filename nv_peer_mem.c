@@ -122,6 +122,7 @@ struct nv_mem_context {
 	unsigned long page_size;
 	struct task_struct *callback_task;
 	int sg_allocated;
+	struct sg_table sg_head;
 };
 
 
@@ -290,7 +291,7 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		}
 
 		nv_mem_context->dma_mapping = dma_mapping;
-		nv_mem_context->sg_allocated = 1;
+
 		for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
 			sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 			sg->dma_address = dma_mapping->dma_addresses[i];
@@ -312,15 +313,15 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 	if (ret)
 		return ret;
 
-	nv_mem_context->sg_allocated = 1;
 	for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
 		sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 		sg->dma_address = page_table->pages[i]->physical_address;
 		sg->dma_length = nv_mem_context->page_size;
 	}
-
 #endif
 
+	nv_mem_context->sg_allocated = 1;
+	nv_mem_context->sg_head = *sg_head;
 	*nmap = nv_mem_context->npages;
 
 	return 0;
@@ -337,6 +338,9 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 		return -EINVAL;
 	}
 
+	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
+		return -EINVAL;
+	
 	if (nv_mem_context->callback_task == current)
 		goto out;
 
@@ -361,7 +365,10 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 		(struct nv_mem_context *) context;
 
 	if (nv_mem_context->callback_task == current)
-		goto out;
+		return;
+
+	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
+		return;
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
 				   nv_mem_context->page_table);
@@ -375,23 +382,6 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 			ret,  nv_mem_context->page_table);
 	}
 #endif
-        // With the old-style peer-mem support or when the client does not
-        // opt into the PEER_MEM_INVALIDATE_UNMAPS feature, both the
-        // invalidation and the free flows will invoke put_pages, so it is
-        // fine to free the sg_table in the free flow only.
-        //
-        // With new-style peer-mem support and PEER_MEM_INVALIDATE_UNMAPS
-        // clients, only the free flow will invoke put_pages therefore
-        // freeing the sg_table.
-        //
-        // Either way, there is no need to protect this code from
-        // concurrent execution.
-	if (nv_mem_context->sg_allocated) {
-		sg_free_table(sg_head);
-		nv_mem_context->sg_allocated = 0;
-	}
-out:
-
 	return;
 }
 
@@ -399,7 +389,10 @@ static void nv_mem_release(void *context)
 {
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
-
+	if (nv_mem_context->sg_allocated) {
+		sg_free_table(&nv_mem_context->sg_head);
+		nv_mem_context->sg_allocated = 0;
+	}
 	kfree(nv_mem_context);
 	module_put(THIS_MODULE);
 	return;
