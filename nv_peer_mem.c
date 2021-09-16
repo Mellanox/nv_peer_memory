@@ -351,10 +351,12 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
 		return -EINVAL;
 
-        peer_dbg("nv_mem_context=%p\n", nv_mem_context);
-
-	if (nv_mem_context->callback_task == current)
+	if (nv_mem_context->callback_task == current) {
+		peer_dbg("no-op in callback context\n");
 		goto out;
+	}
+
+	peer_dbg("nv_mem_context=%p\n", nv_mem_context);
 
 #if NV_DMA_MAPPING
 	{
@@ -384,10 +386,12 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
 		return;
 
-	peer_dbg("nv_mem_context=%p\n", nv_mem_context);
-
-	if (nv_mem_context->callback_task == current)
+	if (nv_mem_context->callback_task == current) {
+            	peer_dbg("no-op in callback context\n");
 		return;
+        }
+
+        peer_dbg("nv_mem_context=%p\n", nv_mem_context);
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
 				   nv_mem_context->page_table);
