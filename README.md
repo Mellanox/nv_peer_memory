@@ -2,13 +2,9 @@
 
 The latest advancement in GPU-GPU communications is GPUDirect RDMA. This new technology provides a direct P2P (Peer-to-Peer) data path between the GPU Memory directly to/from the Mellanox HCA devices. This provides a significant decrease in GPU-GPU communication latency and completely offloads the CPU, removing it from all GPU-GPU communications across the network.
 
-http://www.mellanox.com/page/products_dyn?product_family=116
+[Mellanox Product Family](http://www.mellanox.com/page/products_dyn?product_family=116)
 
-===============================================================================
-1. Overview
-===============================================================================
-
-General:
+General
 -----------
 MLNX_OFED 2.1 introduces an API between IB CORE to peer memory clients, such as NVIDIA Kepler class GPU's, (e.g. GPU cards), also known as GPUDirect RDMA.  It provides access for the HCA to read/write peer memory data buffers, as a result it allows RDMA-based applications to use the peer device computing power with the RDMA interconnect without the need for copying data to host memory.
 
@@ -17,9 +13,8 @@ This capability is supported with Mellanox ConnectX-3 VPI or Connect-IB InfiniBa
 This README describes the required steps to completing the installation for the NVIDIA peer memory client with Mellanox OFED.
 
 
-===============================================================================
 Installation
-===============================================================================
+-------------
 
 Pre-requisites:
 1) NVIDIA compatible driver is installed and up.
@@ -74,9 +69,8 @@ After successful installation:
 3)	/etc/infiniband/nv_peer_mem.conf to control whether kernel module will be loaded on boot
 	(default is YES) was added.
 
-===============================================================================
 Notes
-===============================================================================
+------
 
 To achieve good performance both the NIC and the GPU must physically sit on same i/o root complex,
 use lspci -tv to make sure that this is the case.
