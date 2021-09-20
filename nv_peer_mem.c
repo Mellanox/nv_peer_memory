@@ -46,7 +46,7 @@
 #include <rdma/peer_mem.h>
 
 #define DRV_NAME	"nv_mem"
-#define DRV_VERSION	"1.1-0"
+#define DRV_VERSION	"1.2-0"
 #define DRV_RELDATE	__DATE__
 
 

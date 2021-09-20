@@ -10,6 +10,6 @@ index 7315b92..0b966e1 100644
  # DKMS module name and version
 -PACKAGE_NAME="nv_peer_mem"
 +PACKAGE_NAME="nvidia-peer-memory"
- PACKAGE_VERSION="1.1"
+ PACKAGE_VERSION="1.2"
  
  kernelver=${kernelver:-$(uname -r)}

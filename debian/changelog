@@ -1,3 +1,9 @@
+nvidia-peer-memory (1.2-0) unstable; urgency=low
+
+  *  nv_peer_mem.c: avoid deadlocks by registering as new style client
+
+ -- Feras Daoud <ferasda@nvidia.com>  Mon, 27 Jul 2020 16:01:20 +0200
+
 nvidia-peer-memory (1.1-0) unstable; urgency=low
 
   *  Makefile: Support compiling without MLNX_OFED
