@@ -23,7 +23,9 @@ Installation
 
 Pre-requisites:
 1) NVIDIA compatible driver is installed and up.
-2) MLNX_OFED 2.1 is installed and up.
+2) MLNX_OFED 5.1 or newer is installed and up.
+
+Please note that to build correctly, a MLNX_OFED carrying the Peer-direct fix for the bug "Peer-direct patch may cause deadlock due to lock inversion" (tracked by the Internal Ref. #2696789) is required, for example MLNX_OFED 5.3-1.0.0.1.43.
 
 For the required NVIDIA driver and other relevant details in that area
 please check with NVIDIA support.
