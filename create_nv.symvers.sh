@@ -74,7 +74,7 @@ nvidia_mod=
 crc_found=0
 crc_mod_str="__crc_nvidia_p2p_"
 modules_pat="$crc_mod_str|T nvidia_p2p_"
-for mod in nvidia $(ls /lib/modules/$KVER/updates/dkms/nvidia*.ko* 2>/dev/null)
+for mod in nvidia $(find /lib/modules/$KVER -name "nvidia*.ko*" 2>/dev/null)
 do
 	nvidia_mod=$(/sbin/modinfo -F filename -k "$KVER" $mod 2>/dev/null)
 	if [ ! -e "$nvidia_mod" ]; then

@@ -45,10 +45,10 @@
 #include "nv-p2p.h"
 #include <rdma/peer_mem.h>
 
-
 #define DRV_NAME	"nv_mem"
 #define DRV_VERSION	"1.1-0"
 #define DRV_RELDATE	__DATE__
+
 
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
@@ -120,7 +120,7 @@ struct nv_mem_context {
 	size_t mapped_size;
 	unsigned long npages;
 	unsigned long page_size;
-	int is_callback;
+	struct task_struct *callback_task;
 	int sg_allocated;
 };
 
@@ -162,8 +162,10 @@ static void nv_get_p2p_free_callback(void *data)
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
 
-	WRITE_ONCE(nv_mem_context->is_callback, 1);
+	nv_mem_context->callback_task = current;
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
+	nv_mem_context->callback_task = NULL;
+
 #if NV_DMA_MAPPING
 	ret = nvidia_p2p_free_dma_mapping(dma_mapping); 
 	if (ret)
@@ -335,7 +337,7 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 		return -EINVAL;
 	}
 
-	if (READ_ONCE(nv_mem_context->is_callback))
+	if (nv_mem_context->callback_task == current)
 		goto out;
 
 #if NV_DMA_MAPPING
@@ -358,7 +360,7 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 
-	if (READ_ONCE(nv_mem_context->is_callback))
+	if (nv_mem_context->callback_task == current)
 		goto out;
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
@@ -373,13 +375,22 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 			ret,  nv_mem_context->page_table);
 	}
 #endif
-
-
-out:
+        // With the old-style peer-mem support or when the client does not
+        // opt into the PEER_MEM_INVALIDATE_UNMAPS feature, both the
+        // invalidation and the free flows will invoke put_pages, so it is
+        // fine to free the sg_table in the free flow only.
+        //
+        // With new-style peer-mem support and PEER_MEM_INVALIDATE_UNMAPS
+        // clients, only the free flow will invoke put_pages therefore
+        // freeing the sg_table.
+        //
+        // Either way, there is no need to protect this code from
+        // concurrent execution.
 	if (nv_mem_context->sg_allocated) {
 		sg_free_table(sg_head);
 		nv_mem_context->sg_allocated = 0;
 	}
+out:
 
 	return;
 }
@@ -438,27 +449,45 @@ static unsigned long nv_mem_get_page_size(void *context)
 
 }
 
-
-static struct peer_memory_client nv_mem_client = {
-	.acquire		= nv_mem_acquire,
-	.get_pages	= nv_mem_get_pages,
-	.dma_map	= nv_dma_map,
-	.dma_unmap	= nv_dma_unmap,
-	.put_pages	= nv_mem_put_pages,
-	.get_page_size	= nv_mem_get_page_size,
-	.release		= nv_mem_release,
-};
+static struct peer_memory_client_ex nv_mem_client_ex = { .client = {
+    .acquire        = nv_mem_acquire,
+    .get_pages  = nv_mem_get_pages,
+    .dma_map    = nv_dma_map,
+    .dma_unmap  = nv_dma_unmap,
+    .put_pages  = nv_mem_put_pages,
+    .get_page_size  = nv_mem_get_page_size,
+    .release        = nv_mem_release,
+}};
 
 static int __init nv_mem_client_init(void)
 {
-	strcpy(nv_mem_client.name, DRV_NAME);
-	strcpy(nv_mem_client.version, DRV_VERSION);
-	reg_handle = ib_register_peer_memory_client(&nv_mem_client,
-					     &mem_invalidate_callback);
-	if (!reg_handle)
-		return -EINVAL;
+    // off by one, to leave space for the trailing '1' which is flagging
+    // the new client type
+    BUG_ON(strlen(DRV_NAME) > IB_PEER_MEMORY_NAME_MAX-1);
+    strcpy(nv_mem_client_ex.client.name, DRV_NAME);
 
-	return 0;
+    // [VER_MAX-1]=1 <-- last byte is used as flag
+    // [VER_MAX-2]=0 <-- version string terminator
+    BUG_ON(strlen(DRV_VERSION) > IB_PEER_MEMORY_VER_MAX-2);
+    strcpy(nv_mem_client_ex.client.version, DRV_VERSION);
+
+    // Register as new-style client
+    // Needs updated peer_mem patch, but is harmless otherwise
+    nv_mem_client_ex.client.version[IB_PEER_MEMORY_VER_MAX-1] = 1;
+    nv_mem_client_ex.ex_size = sizeof(struct peer_memory_client_ex);
+
+    // PEER_MEM_INVALIDATE_UNMAPS allow clients to opt out of
+    // unmap/put_pages during invalidation, i.e. the client tells the
+    // infiniband layer that it does not need to call
+    // unmap/put_pages in the invalidation callback
+    nv_mem_client_ex.flags = PEER_MEM_INVALIDATE_UNMAPS;
+
+    reg_handle = ib_register_peer_memory_client(&nv_mem_client_ex.client,
+                         &mem_invalidate_callback);
+    if (!reg_handle)
+        return -EINVAL;
+
+    return 0;
 }
 
 static void __exit nv_mem_client_cleanup(void)
