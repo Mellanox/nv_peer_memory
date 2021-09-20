@@ -467,44 +467,44 @@ static unsigned long nv_mem_get_page_size(void *context)
 }
 
 static struct peer_memory_client_ex nv_mem_client_ex = { .client = {
-    .acquire        = nv_mem_acquire,
-    .get_pages  = nv_mem_get_pages,
-    .dma_map    = nv_dma_map,
-    .dma_unmap  = nv_dma_unmap,
-    .put_pages  = nv_mem_put_pages,
-    .get_page_size  = nv_mem_get_page_size,
-    .release        = nv_mem_release,
+	.acquire        = nv_mem_acquire,
+	.get_pages  = nv_mem_get_pages,
+	.dma_map    = nv_dma_map,
+	.dma_unmap  = nv_dma_unmap,
+	.put_pages  = nv_mem_put_pages,
+	.get_page_size  = nv_mem_get_page_size,
+	.release        = nv_mem_release,
 }};
 
 static int __init nv_mem_client_init(void)
 {
-    // off by one, to leave space for the trailing '1' which is flagging
-    // the new client type
-    BUG_ON(strlen(DRV_NAME) > IB_PEER_MEMORY_NAME_MAX-1);
-    strcpy(nv_mem_client_ex.client.name, DRV_NAME);
+	// off by one, to leave space for the trailing '1' which is flagging
+	// the new client type
+	BUG_ON(strlen(DRV_NAME) > IB_PEER_MEMORY_NAME_MAX-1);
+	strcpy(nv_mem_client_ex.client.name, DRV_NAME);
 
-    // [VER_MAX-1]=1 <-- last byte is used as flag
-    // [VER_MAX-2]=0 <-- version string terminator
-    BUG_ON(strlen(DRV_VERSION) > IB_PEER_MEMORY_VER_MAX-2);
-    strcpy(nv_mem_client_ex.client.version, DRV_VERSION);
+	// [VER_MAX-1]=1 <-- last byte is used as flag
+	// [VER_MAX-2]=0 <-- version string terminator
+	BUG_ON(strlen(DRV_VERSION) > IB_PEER_MEMORY_VER_MAX-2);
+	strcpy(nv_mem_client_ex.client.version, DRV_VERSION);
 
-    // Register as new-style client
-    // Needs updated peer_mem patch, but is harmless otherwise
-    nv_mem_client_ex.client.version[IB_PEER_MEMORY_VER_MAX-1] = 1;
-    nv_mem_client_ex.ex_size = sizeof(struct peer_memory_client_ex);
+	// Register as new-style client
+	// Needs updated peer_mem patch, but is harmless otherwise
+	nv_mem_client_ex.client.version[IB_PEER_MEMORY_VER_MAX-1] = 1;
+	nv_mem_client_ex.ex_size = sizeof(struct peer_memory_client_ex);
 
-    // PEER_MEM_INVALIDATE_UNMAPS allow clients to opt out of
-    // unmap/put_pages during invalidation, i.e. the client tells the
-    // infiniband layer that it does not need to call
-    // unmap/put_pages in the invalidation callback
-    nv_mem_client_ex.flags = PEER_MEM_INVALIDATE_UNMAPS;
+	// PEER_MEM_INVALIDATE_UNMAPS allow clients to opt out of
+	// unmap/put_pages during invalidation, i.e. the client tells the
+	// infiniband layer that it does not need to call
+	// unmap/put_pages in the invalidation callback
+	nv_mem_client_ex.flags = PEER_MEM_INVALIDATE_UNMAPS;
 
-    reg_handle = ib_register_peer_memory_client(&nv_mem_client_ex.client,
-                         &mem_invalidate_callback);
-    if (!reg_handle)
-        return -EINVAL;
+	reg_handle = ib_register_peer_memory_client(&nv_mem_client_ex.client,
+						    &mem_invalidate_callback);
+	if (!reg_handle)
+		return -EINVAL;
 
-    return 0;
+	return 0;
 }
 
 static void __exit nv_mem_client_cleanup(void)
