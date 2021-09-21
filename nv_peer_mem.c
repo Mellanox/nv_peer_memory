@@ -49,6 +49,10 @@
 #define DRV_VERSION	"1.2-0"
 #define DRV_RELDATE	__DATE__
 
+MODULE_AUTHOR("Yishai Hadas");
+MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
+MODULE_LICENSE("Dual BSD/GPL");
+MODULE_VERSION(DRV_VERSION);
 
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
@@ -100,11 +104,6 @@ MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
 #ifndef WRITE_ONCE
 #define WRITE_ONCE(x, val) ({ ACCESS_ONCE(x) = (val); })
 #endif
-
-MODULE_AUTHOR("Yishai Hadas");
-MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
-MODULE_LICENSE("Dual BSD/GPL");
-MODULE_VERSION(DRV_VERSION);
 
 #define GPU_PAGE_SHIFT   16
 #define GPU_PAGE_SIZE    ((u64)1 << GPU_PAGE_SHIFT)
