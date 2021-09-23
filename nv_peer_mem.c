@@ -122,6 +122,8 @@ struct nv_mem_context {
 	unsigned long page_size;
 	int is_callback;
 	int sg_allocated;
+	unsigned long addr;
+	size_t size;
 };
 
 
@@ -211,6 +213,8 @@ static int nv_mem_acquire(unsigned long addr, size_t size, void *peer_mem_privat
 	nv_mem_context->page_virt_start = addr & GPU_PAGE_MASK;
 	nv_mem_context->page_virt_end   = (addr + size + GPU_PAGE_SIZE - 1) & GPU_PAGE_MASK;
 	nv_mem_context->mapped_size  = nv_mem_context->page_virt_end - nv_mem_context->page_virt_start;
+	nv_mem_context->size = size;
+	nv_mem_context->addr = addr;
 
 	ret = nvidia_p2p_get_pages(0, 0, nv_mem_context->page_virt_start, nv_mem_context->mapped_size,
 			&nv_mem_context->page_table, nv_mem_dummy_callback, nv_mem_context);
@@ -249,12 +253,19 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 	struct nvidia_p2p_page_table *page_table = nv_mem_context->page_table;
+	unsigned long page_size;
+	unsigned long system_page_virt_start, system_page_virt_end;
+	unsigned int system_page_offset;
 
 	if (page_table->page_size != NVIDIA_P2P_PAGE_SIZE_64KB) {
 		peer_err("nv_dma_map -- assumption of 64KB pages failed size_id=%u\n",
 					nv_mem_context->page_table->page_size);
 		return -EINVAL;
 	}
+
+	system_page_virt_start = nv_mem_context->addr & PAGE_MASK;
+	system_page_virt_end = (nv_mem_context->addr + nv_mem_context->size + PAGE_SIZE - 1) & PAGE_MASK;
+	system_page_offset = system_page_virt_start - nv_mem_context->page_virt_start;
 
 #if NV_DMA_MAPPING
 	{
@@ -289,10 +300,21 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 
 		nv_mem_context->dma_mapping = dma_mapping;
 		nv_mem_context->sg_allocated = 1;
+		BUILD_BUG_ON(PAGE_SIZE > GPU_PAGE_SIZE);
 		for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
-			sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 			sg->dma_address = dma_mapping->dma_addresses[i];
-			sg->dma_length = nv_mem_context->page_size;
+			page_size = nv_mem_context->page_size;
+			if (i == nv_mem_context->npages - 1)
+				page_size = ((system_page_virt_end - system_page_virt_start +
+					system_page_offset - 1) & GPU_PAGE_OFFSET) + 1;
+
+			if (i == 0) {
+				sg_head->sgl[0].dma_address += system_page_offset;
+				page_size -= system_page_offset;
+			}
+
+			sg_set_page(sg, NULL, page_size, 0);
+			sg->dma_length = page_size;
 		}
 	}
 #else
@@ -311,10 +333,21 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		return ret;
 
 	nv_mem_context->sg_allocated = 1;
+	BUILD_BUG_ON(PAGE_SIZE > GPU_PAGE_SIZE);
 	for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
-		sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 		sg->dma_address = page_table->pages[i]->physical_address;
-		sg->dma_length = nv_mem_context->page_size;
+		page_size = nv_mem_context->page_size;
+		if (i == nv_mem_context->npages - 1)
+			page_size = ((system_page_virt_end - system_page_virt_start +
+				system_page_offset - 1) & GPU_PAGE_OFFSET) + 1;
+
+		if (i == 0) {
+			sg_head->sgl[0].dma_address += system_page_offset;
+			page_size -= system_page_offset;
+		}
+
+		sg_set_page(sg, NULL, page_size, 0);
+		sg->dma_length = page_size;
 	}
 
 #endif
@@ -431,11 +464,7 @@ static int nv_mem_get_pages(unsigned long addr,
 
 static unsigned long nv_mem_get_page_size(void *context)
 {
-	struct nv_mem_context *nv_mem_context =
-				(struct nv_mem_context *)context;
-
-	return nv_mem_context->page_size;
-
+	return PAGE_SIZE;
 }
 
 
