@@ -45,12 +45,26 @@
 #include "nv-p2p.h"
 #include <rdma/peer_mem.h>
 
-
 #define DRV_NAME	"nv_mem"
-#define DRV_VERSION	"1.1-0"
+#define DRV_VERSION	"1.2-0"
 #define DRV_RELDATE	__DATE__
 
+MODULE_AUTHOR("Yishai Hadas");
+MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
+MODULE_LICENSE("Dual BSD/GPL");
+MODULE_VERSION(DRV_VERSION);
+
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
+
+static int enable_dbg = 0;
+#define peer_dbg(FMT, ARGS...)                                          \
+        do {                                                            \
+                if (enable_dbg /*&& printk_ratelimit()*/)		\
+                        printk(KERN_ERR DRV_NAME " DBG %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS); \
+        } while(0)
+
+module_param(enable_dbg, int, 0000);
+MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
 
 #ifndef NVIDIA_P2P_MAJOR_VERSION_MASK
 #define NVIDIA_P2P_MAJOR_VERSION_MASK   0xffff0000
@@ -91,11 +105,6 @@
 #define WRITE_ONCE(x, val) ({ ACCESS_ONCE(x) = (val); })
 #endif
 
-MODULE_AUTHOR("Yishai Hadas");
-MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
-MODULE_LICENSE("Dual BSD/GPL");
-MODULE_VERSION(DRV_VERSION);
-
 #define GPU_PAGE_SHIFT   16
 #define GPU_PAGE_SIZE    ((u64)1 << GPU_PAGE_SHIFT)
 #define GPU_PAGE_OFFSET  (GPU_PAGE_SIZE-1)
@@ -120,8 +129,9 @@ struct nv_mem_context {
 	size_t mapped_size;
 	unsigned long npages;
 	unsigned long page_size;
-	int is_callback;
+	struct task_struct *callback_task;
 	int sg_allocated;
+	struct sg_table sg_head;
 };
 
 
@@ -161,9 +171,11 @@ static void nv_get_p2p_free_callback(void *data)
 	/* For now don't set nv_mem_context->page_table to NULL, 
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
-
-	WRITE_ONCE(nv_mem_context->is_callback, 1);
+        peer_dbg("calling mem_invalidate_callback\n");
+	nv_mem_context->callback_task = current;
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
+	nv_mem_context->callback_task = NULL;
+
 #if NV_DMA_MAPPING
 	ret = nvidia_p2p_free_dma_mapping(dma_mapping); 
 	if (ret)
@@ -288,7 +300,7 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 		}
 
 		nv_mem_context->dma_mapping = dma_mapping;
-		nv_mem_context->sg_allocated = 1;
+
 		for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
 			sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 			sg->dma_address = dma_mapping->dma_addresses[i];
@@ -310,15 +322,15 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 	if (ret)
 		return ret;
 
-	nv_mem_context->sg_allocated = 1;
 	for_each_sg(sg_head->sgl, sg, nv_mem_context->npages, i) {
 		sg_set_page(sg, NULL, nv_mem_context->page_size, 0);
 		sg->dma_address = page_table->pages[i]->physical_address;
 		sg->dma_length = nv_mem_context->page_size;
 	}
-
 #endif
-
+	nv_mem_context->sg_allocated = 1;
+	nv_mem_context->sg_head = *sg_head;
+	peer_dbg("allocated sg_head.sgl=%p\n", nv_mem_context->sg_head.sgl);
 	*nmap = nv_mem_context->npages;
 
 	return 0;
@@ -335,8 +347,15 @@ static int nv_dma_unmap(struct sg_table *sg_head, void *context,
 		return -EINVAL;
 	}
 
-	if (READ_ONCE(nv_mem_context->is_callback))
+	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
+		return -EINVAL;
+
+	if (nv_mem_context->callback_task == current) {
+		peer_dbg("no-op in callback context\n");
 		goto out;
+	}
+
+	peer_dbg("nv_mem_context=%p\n", nv_mem_context);
 
 #if NV_DMA_MAPPING
 	{
@@ -358,8 +377,20 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 
-	if (READ_ONCE(nv_mem_context->is_callback))
-		goto out;
+	if (!nv_mem_context) {
+		peer_err("nv_mem_put_pages -- invalid nv_mem_context\n");
+		return;
+	}
+
+	if (WARN_ON(0 != memcmp(sg_head, &nv_mem_context->sg_head, sizeof(*sg_head))))
+		return;
+
+	if (nv_mem_context->callback_task == current) {
+            	peer_dbg("no-op in callback context\n");
+		return;
+        }
+
+        peer_dbg("nv_mem_context=%p\n", nv_mem_context);
 
 	ret = nvidia_p2p_put_pages(0, 0, nv_mem_context->page_virt_start,
 				   nv_mem_context->page_table);
@@ -373,14 +404,6 @@ static void nv_mem_put_pages(struct sg_table *sg_head, void *context)
 			ret,  nv_mem_context->page_table);
 	}
 #endif
-
-
-out:
-	if (nv_mem_context->sg_allocated) {
-		sg_free_table(sg_head);
-		nv_mem_context->sg_allocated = 0;
-	}
-
 	return;
 }
 
@@ -388,7 +411,11 @@ static void nv_mem_release(void *context)
 {
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
-
+	if (nv_mem_context->sg_allocated) {
+		peer_dbg("freeing sg_head.sgl=%p\n", nv_mem_context->sg_head.sgl);
+		sg_free_table(&nv_mem_context->sg_head);
+		nv_mem_context->sg_allocated = 0;
+	}
 	kfree(nv_mem_context);
 	module_put(THIS_MODULE);
 	return;
@@ -438,23 +465,41 @@ static unsigned long nv_mem_get_page_size(void *context)
 
 }
 
-
-static struct peer_memory_client nv_mem_client = {
-	.acquire		= nv_mem_acquire,
-	.get_pages	= nv_mem_get_pages,
-	.dma_map	= nv_dma_map,
-	.dma_unmap	= nv_dma_unmap,
-	.put_pages	= nv_mem_put_pages,
-	.get_page_size	= nv_mem_get_page_size,
-	.release		= nv_mem_release,
-};
+static struct peer_memory_client_ex nv_mem_client_ex = { .client = {
+	.acquire        = nv_mem_acquire,
+	.get_pages  = nv_mem_get_pages,
+	.dma_map    = nv_dma_map,
+	.dma_unmap  = nv_dma_unmap,
+	.put_pages  = nv_mem_put_pages,
+	.get_page_size  = nv_mem_get_page_size,
+	.release        = nv_mem_release,
+}};
 
 static int __init nv_mem_client_init(void)
 {
-	strcpy(nv_mem_client.name, DRV_NAME);
-	strcpy(nv_mem_client.version, DRV_VERSION);
-	reg_handle = ib_register_peer_memory_client(&nv_mem_client,
-					     &mem_invalidate_callback);
+	// off by one, to leave space for the trailing '1' which is flagging
+	// the new client type
+	BUG_ON(strlen(DRV_NAME) > IB_PEER_MEMORY_NAME_MAX-1);
+	strcpy(nv_mem_client_ex.client.name, DRV_NAME);
+
+	// [VER_MAX-1]=1 <-- last byte is used as flag
+	// [VER_MAX-2]=0 <-- version string terminator
+	BUG_ON(strlen(DRV_VERSION) > IB_PEER_MEMORY_VER_MAX-2);
+	strcpy(nv_mem_client_ex.client.version, DRV_VERSION);
+
+	// Register as new-style client
+	// Needs updated peer_mem patch, but is harmless otherwise
+	nv_mem_client_ex.client.version[IB_PEER_MEMORY_VER_MAX-1] = 1;
+	nv_mem_client_ex.ex_size = sizeof(struct peer_memory_client_ex);
+
+	// PEER_MEM_INVALIDATE_UNMAPS allow clients to opt out of
+	// unmap/put_pages during invalidation, i.e. the client tells the
+	// infiniband layer that it does not need to call
+	// unmap/put_pages in the invalidation callback
+	nv_mem_client_ex.flags = PEER_MEM_INVALIDATE_UNMAPS;
+
+	reg_handle = ib_register_peer_memory_client(&nv_mem_client_ex.client,
+						    &mem_invalidate_callback);
 	if (!reg_handle)
 		return -EINVAL;
 

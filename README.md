@@ -18,7 +18,9 @@ Installation
 
 Pre-requisites:
 1) NVIDIA compatible driver is installed and up.
-2) MLNX_OFED 2.1 is installed and up.
+2) MLNX_OFED 5.1 or newer is installed and up.
+
+Please note that to build correctly, a MLNX_OFED carrying the Peer-direct fix for the bug "Peer-direct patch may cause deadlock due to lock inversion" (tracked by the Internal Ref. #2696789) is required, for example MLNX_OFED 5.3-1.0.0.1.43.
 
 For the required NVIDIA driver and other relevant details in that area
 please check with NVIDIA support.
@@ -26,30 +28,31 @@ please check with NVIDIA support.
 To build source packages (src.rpm for RPM based OS and tarball for DEB based OS), use the build_module.sh script.
 
 
-Example:
+For example, to build on RPM based OS:
 
     $ ./build_module.sh
-
     Building source rpm for nvidia_peer_memory...
-    Building debian tarball for nvidia-peer-memory...
-
-    Built: /tmp/nvidia_peer_memory-1.1-0.src.rpm
-    Built: /tmp/nvidia-peer-memory_1.0.orig.tar.gz
-
-To install on RPM based OS:
-
-    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.1-0.src.rpm
+    
+    Built: /tmp/nvidia_peer_memory-1.2-0.src.rpm
+    
+    To install run on RPM based OS:
+    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.2-0.src.rpm
     # rpm -ivh <path to generated binary rpm file>
 
-To install on DEB based OS:
+To build on DEB based OS:
 
+    Building debian tarball for nvidia-peer-memory...
+    
+    Built: /tmp/nvidia-peer-memory_1.2.orig.tar.gz
+
+    To install on DEB based OS:
     # cd /tmp
-    # tar xzf /tmp/nvidia-peer-memory_1.0.orig.tar.gz
-    # cd nvidia-peer-memory-1.0
+    # tar xzf /tmp/nvidia-peer-memory_1.2.orig.tar.gz
+    # cd nvidia-peer-memory-1.2
     # dpkg-buildpackage -us -uc
-    # dpkg -i <path to generated deb files>
+    # dpkg -i <path to generated deb files>            
 
-To install run (excluding ubuntu):
+To install run (excluding Ubuntu):
 
     rpmbuild --rebuild <path to srpm>.
     rpm -ivh <path to generated binary rpm file.> [On SLES add --nodeps].
@@ -59,8 +62,8 @@ To install on Ubuntu run:
     dpkg-buildpackage -us -uc
     dpkg -i <path to generated deb files.>
 
-    (e.g. dpkg -i nvidia-peer-memory_1.1-0_all.deb
-          dpkg -i nvidia-peer-memory-dkms_1.1-0_all.deb)
+    (e.g. dpkg -i nvidia-peer-memory_1.2-0_all.deb
+          dpkg -i nvidia-peer-memory-dkms_1.2-0_all.deb)
 
 After successful installation:
 1)	nv_peer_mem.ko is installed
