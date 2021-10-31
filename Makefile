@@ -6,7 +6,7 @@ PHONY += all clean install uninstall gen_nv_symvers
 KVER := $(shell uname -r)
 OFA_ARCH := $(shell uname -m)
 OFA_DIR ?= /usr/src/ofa_kernel
-OFA_CANDIDATES = $(OFA_DIR)/$(KVER) $(OFA_DIR)/default /var/lib/dkms/mlnx-ofed-kernel
+OFA_CANDIDATES = $(OFA_DIR)/$(OFA_ARCH)/$(KVER) $(OFA_DIR)/$(KVER) $(OFA_DIR)/default /var/lib/dkms/mlnx-ofed-kernel
 OFA_KERNEL ?= $(shell for d in $(OFA_CANDIDATES); do if [ -d "$$d" ]; then echo "$$d"; exit 0; fi; done; echo $(OFA_DIR))
 
 first:
