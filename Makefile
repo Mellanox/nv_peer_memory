@@ -4,8 +4,14 @@ PHONY += all clean install uninstall gen_nv_symvers
 .PHONY: $(PHONY)
 
 KVER := $(shell uname -r)
+OFA_ARCH := $(shell uname -m)
 OFA_DIR ?= /usr/src/ofa_kernel
-OFA_KERNEL ?= $(shell ( test -d $(OFA_DIR)/$(KVER) && echo $(OFA_DIR)/$(KVER) ) || ( test -d $(OFA_DIR)/default && echo $(OFA_DIR)/default ) || ( test -d /var/lib/dkms/mlnx-ofed-kernel/ && ls -d /var/lib/dkms/mlnx-ofed-kernel/*/build ) || ( echo $(OFA_DIR) ))
+OFA_CANDIDATES = $(OFA_DIR)/$(OFA_ARCH)/$(KVER) $(OFA_DIR)/$(KVER) $(OFA_DIR)/default /var/lib/dkms/mlnx-ofed-kernel
+OFA_KERNEL ?= $(shell for d in $(OFA_CANDIDATES); do if [ -d "$$d" ]; then echo "$$d"; exit 0; fi; done; echo $(OFA_DIR))
+
+first:
+	@echo OFA_DIR: $(OFA_DIR)
+	@echo OFA_KERNEL: $(OFA_KERNEL)
 
 ifneq ($(shell test -d $(OFA_KERNEL) && echo "true" || echo "" ),)
 $(info INFO: Building with MLNX_OFED from: $(OFA_KERNEL))
