@@ -8,7 +8,7 @@
 CONFIG=${CONFIG:-"/etc/infiniband/nv_peer_mem.conf"}
 
 modname=nv_peer_mem
-reqmods="ib_core nvidia"
+reqmods="ib_core nvgpu"
 
 if [ ! -f $CONFIG ]; then
     echo No configuration file found for $modname
