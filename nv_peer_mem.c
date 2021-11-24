@@ -96,7 +96,7 @@ MODULE_DESCRIPTION("NVIDIA GPU memory plug-in");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_VERSION(DRV_VERSION);
 
-#define GPU_PAGE_SHIFT   16
+#define GPU_PAGE_SHIFT   /*16*/ 12
 #define GPU_PAGE_SIZE    ((u64)1 << GPU_PAGE_SHIFT)
 #define GPU_PAGE_OFFSET  (GPU_PAGE_SIZE-1)
 #define GPU_PAGE_MASK    (~GPU_PAGE_OFFSET)
@@ -254,13 +254,13 @@ static int nv_dma_map(struct sg_table *sg_head, void *context,
 	struct nv_mem_context *nv_mem_context =
 		(struct nv_mem_context *) context;
 	struct nvidia_p2p_page_table *page_table = nv_mem_context->page_table;
-
+/*
 	if (page_table->page_size != NVIDIA_P2P_PAGE_SIZE_64KB) {
 		peer_err("nv_dma_map -- assumption of 64KB pages failed size_id=%u\n",
 					nv_mem_context->page_table->page_size);
 		return -EINVAL;
 	}
-
+*/
 #if NV_DMA_MAPPING
 	{
 		struct nvidia_p2p_dma_mapping *dma_mapping;
