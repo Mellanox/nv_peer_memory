@@ -6,7 +6,7 @@
 
 Summary: nvidia_peer_memory
 Name: nvidia_peer_memory
-Version: 1.2
+Version: 1.3
 Release: %{_release}
 License: GPL
 Group: System Environment/Libraries

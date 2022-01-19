@@ -37,22 +37,22 @@ For example, to build on RPM based OS:
     $ ./build_module.sh
     Building source rpm for nvidia_peer_memory...
     
-    Built: /tmp/nvidia_peer_memory-1.2-0.src.rpm
+    Built: /tmp/nvidia_peer_memory-1.3-0.src.rpm
     
     To install run on RPM based OS:
-    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.2-0.src.rpm
+    # rpmbuild --rebuild /tmp/nvidia_peer_memory-1.3-0.src.rpm
     # rpm -ivh <path to generated binary rpm file>
 
 To build on DEB based OS:
 
     Building debian tarball for nvidia-peer-memory...
     
-    Built: /tmp/nvidia-peer-memory_1.2.orig.tar.gz
+    Built: /tmp/nvidia-peer-memory_1.3.orig.tar.gz
 
     To install on DEB based OS:
     # cd /tmp
-    # tar xzf /tmp/nvidia-peer-memory_1.2.orig.tar.gz
-    # cd nvidia-peer-memory-1.2
+    # tar xzf /tmp/nvidia-peer-memory_1.3.orig.tar.gz
+    # cd nvidia-peer-memory-1.3
     # dpkg-buildpackage -us -uc
     # dpkg -i <path to generated deb files>            
 
@@ -66,8 +66,8 @@ To install on Ubuntu run:
     dpkg-buildpackage -us -uc
     dpkg -i <path to generated deb files.>
 
-    (e.g. dpkg -i nvidia-peer-memory_1.2-0_all.deb
-          dpkg -i nvidia-peer-memory-dkms_1.2-0_all.deb)
+    (e.g. dpkg -i nvidia-peer-memory_1.3-0_all.deb
+          dpkg -i nvidia-peer-memory-dkms_1.3-0_all.deb)
 
 After successful installation:
 1)	nv_peer_mem.ko is installed
