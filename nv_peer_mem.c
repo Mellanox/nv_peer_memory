@@ -40,7 +40,7 @@
 #include <linux/hugetlb.h>
 #include <linux/atomic.h>
 #include <linux/pci.h>
-
+#include <linux/kernel.h>
 
 #include "nv-p2p.h"
 #include <rdma/peer_mem.h>
@@ -112,7 +112,8 @@ MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
 
 
 invalidate_peer_memory mem_invalidate_callback;
-static void *reg_handle;
+static void *reg_handle = NULL;
+static void *reg_handle_nc = NULL;
 
 struct nv_mem_context {
 	struct nvidia_p2p_page_table *page_table;
@@ -134,6 +135,14 @@ struct nv_mem_context {
 	struct sg_table sg_head;
 };
 
+static inline int nv_support_persistent_pages(void)
+{
+#ifdef NVIDIA_P2P_CAP_PERSISTENT_PAGES
+	return !!(nvidia_p2p_cap_persistent_pages);
+#else
+	return 0;
+#endif
+}
 
 static void nv_get_p2p_free_callback(void *data)
 {
@@ -475,8 +484,60 @@ static struct peer_memory_client_ex nv_mem_client_ex = { .client = {
 	.release        = nv_mem_release,
 }};
 
+
+static int nv_mem_get_pages_nc(unsigned long addr,
+			  size_t size, int write, int force,
+			  struct sg_table *sg_head,
+			  void *client_context,
+#ifndef PEER_MEM_U64_CORE_CONTEXT
+			  void *core_context)
+#else
+			  u64 core_context)
+#endif
+{
+	int ret;
+	struct nv_mem_context *nv_mem_context;
+
+	peer_dbg("nv_mem_get_pages_nc -- addr:%lx size:%zu\n", addr, size);
+
+	nv_mem_context = (struct nv_mem_context *)client_context;
+	if (!nv_mem_context)
+		return -EINVAL;
+
+	BUG_ON(!nv_support_persistent_pages());
+
+	nv_mem_context->core_context = core_context;
+	nv_mem_context->page_size = GPU_PAGE_SIZE;
+
+	ret = nvidia_p2p_get_pages(0, 0, nv_mem_context->page_virt_start, nv_mem_context->mapped_size,
+			&nv_mem_context->page_table, NULL, NULL);
+	if (ret < 0) {
+		peer_err("nv_mem_get_pages -- error %d while calling nvidia_p2p_get_pages() with NULL callback\n", ret);
+		return ret;
+	}
+
+	/* No extra access to nv_mem_context->page_table here as we are
+	    called not under a lock and may race with inflight invalidate callback on that buffer.
+	    Extra handling was delayed to be done under nv_dma_map.
+	 */
+	return 0;
+}
+
+static struct peer_memory_client nv_mem_client_nc = {
+	.acquire        = nv_mem_acquire,
+	.get_pages      = nv_mem_get_pages_nc,
+	.dma_map        = nv_dma_map,
+	.dma_unmap      = nv_dma_unmap,
+	.put_pages      = nv_mem_put_pages,
+	.get_page_size  = nv_mem_get_page_size,
+	.release        = nv_mem_release,
+};
+
+
 static int __init nv_mem_client_init(void)
 {
+	int status = 0;
+
 	// off by one, to leave space for the trailing '1' which is flagging
 	// the new client type
 	BUG_ON(strlen(DRV_NAME) > IB_PEER_MEMORY_NAME_MAX-1);
@@ -500,15 +561,47 @@ static int __init nv_mem_client_init(void)
 
 	reg_handle = ib_register_peer_memory_client(&nv_mem_client_ex.client,
 						    &mem_invalidate_callback);
-	if (!reg_handle)
-		return -EINVAL;
+	if (!reg_handle) {
+		peer_err("nv_mem_client_init -- error while registering client\n");
+		status = -EINVAL;
+		goto out;
+	}
 
-	return 0;
+	// Register the NC client only if nvidia.ko supports persistent pages
+	if (nv_support_persistent_pages()) {
+		strcpy(nv_mem_client_nc.name, DRV_NAME "_nc");
+		strcpy(nv_mem_client_nc.version, DRV_VERSION);
+		reg_handle_nc = ib_register_peer_memory_client(&nv_mem_client_nc, NULL);
+		if (!reg_handle_nc) {
+			peer_err("nv_mem_client_init -- error while registering nc client\n");
+			status = -EINVAL;
+			goto out;
+		}
+	}
+
+out:
+	if (status) {
+		if (reg_handle) {
+			ib_unregister_peer_memory_client(reg_handle);
+			reg_handle = NULL;
+		}
+
+		if (reg_handle_nc) {
+			ib_unregister_peer_memory_client(reg_handle_nc);
+			reg_handle_nc = NULL;
+		}
+	}
+
+	return status;
 }
 
 static void __exit nv_mem_client_cleanup(void)
 {
-	ib_unregister_peer_memory_client(reg_handle);
+	if (reg_handle)
+		ib_unregister_peer_memory_client(reg_handle);
+
+	if (reg_handle_nc)
+		ib_unregister_peer_memory_client(reg_handle_nc);
 }
 
 module_init(nv_mem_client_init);
