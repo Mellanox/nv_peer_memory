@@ -39,7 +39,7 @@ fi
 
 cd $tmpdir
 ex mv $dirname nvidia_peer_memory-$VERSION
-ex tar czf nvidia_peer_memory-$VERSION.tar.gz nvidia_peer_memory-$VERSION --exclude=.* --exclude=build_release.sh
+ex tar czf nvidia_peer_memory-$VERSION.tar.gz --exclude=.* --exclude=build_release.sh nvidia_peer_memory-$VERSION
 
 echo
 echo "Building source rpm for nvidia_peer_memory..."
@@ -52,7 +52,7 @@ echo "Building debian tarball for nvidia-peer-memory..."
 ex mv nvidia_peer_memory-$VERSION nvidia-peer-memory-$VERSION
 # update version in changelog
 sed -i -r "0,/^(.*) \(([a-zA-Z0-9.-]+)\) (.*)/s//\1 \(${VERSION}-${RELEASE}\) \3/" nvidia-peer-memory-${VERSION}/debian/changelog
-ex tar czf nvidia-peer-memory_$VERSION.orig.tar.gz nvidia-peer-memory-$VERSION --exclude=.* --exclude=build_release.sh
+ex tar czf nvidia-peer-memory_$VERSION.orig.tar.gz --exclude=.* --exclude=build_release.sh nvidia-peer-memory-$VERSION
 ex mv nvidia-peer-memory_$VERSION.orig.tar.gz /tmp
 
 /bin/rm -rf $tmpdir
